@@ -25,14 +25,14 @@ sub Zendure_Define($$) {
 
 	return "Usage: define <name> Zendure <user> <password>" if (int(@args) != 4);
 
-	my $name	= $args[0];
-	my $user 	= $args[2];
+	my $name		= $args[0];
+	my $user 		= $args[2];
 	my $password	= $args[3];
 
 	$hash->{helper}{user} 		= $user;
 	$hash->{helper}{password} 	= $password ;
-	$hash->{NAME}			= $name;
-	$hash->{STATE}			= 'initialized';
+	$hash->{NAME}				= $name;
+	$hash->{STATE}				= 'initialized';
 
 	readingsSingleUpdate($hash, 'state', 'initialized', 1 );
 
@@ -86,7 +86,7 @@ sub Zendure_getAccessToken{
 		"Accept-Language"	=> 'de-DE',
 		"appVersion"		=> '4.3.1',
 		"User-Agent"		=> 'Zendure/4.3.1 (iPhone; iOS 14.4.2; Scale/3.00)',
-		"Accept"		=> '*/*',
+		"Accept"			=> '*/*',
 		"Authorization"		=> $auth,
 		"Blade-Auth"		=> 'bearer (null)',        
 	};
@@ -131,7 +131,7 @@ sub Zendure_getDeviceList{
 		"Accept-Language"	=> 'de-DE',
 		"appVersion"		=> '4.3.1',
 		"User-Agent"		=> 'Zendure/4.3.1 (iPhone; iOS 14.4.2; Scale/3.00)',
-		"Accept"		=> '*/*',
+		"Accept"			=> '*/*',
 		"Authorization"		=> "Basic Q29uc3VtZXJBcHA6NX4qUmRuTnJATWg0WjEyMw==",
 		"Blade-Auth"		=> $bladeAuth        
 	};
@@ -190,7 +190,7 @@ sub Zendure_parseRequestAnswer {
 		if($data =~ m/\{.*\}/s){
 			eval{
 				$responseData = decode_json($data);
-				#HomebridgeUIAPI_convertBool($responseData);
+				Zendure_convertBool($responseData);
 			};
 			if($@){
 				my $error = $@;
@@ -248,12 +248,12 @@ sub Zendure_parseRequestAnswer {
 				$hash->{helper}{subscriptions} .= $subscriptions." \n";
 				$k = $i + 1;
 				readingsBeginUpdate($hash); 	
-				readingsBulkUpdate($hash, "Device_".$k."_productKey", $responseData->{data}[$i]{productKey});
-				readingsBulkUpdate($hash, "Device_".$k."_deviceKey", $responseData->{data}[$i]{deviceKey});
-				readingsBulkUpdate($hash, "Device_".$k."_snNumber", $responseData->{data}[$i]{snNumber});
-				readingsBulkUpdate($hash, "Device_".$k."_productName", $responseData->{data}[$i]{productName});
-				readingsBulkUpdate($hash, "Device_".$k."_name", $responseData->{data}[$i]{name});
-				readingsBulkUpdate($hash, "Device_".$k."_subscriptions", $subscriptions);
+					readingsBulkUpdate($hash, "Device_".$k."_productKey", $responseData->{data}[$i]{productKey});
+					readingsBulkUpdate($hash, "Device_".$k."_deviceKey", $responseData->{data}[$i]{deviceKey});
+					readingsBulkUpdate($hash, "Device_".$k."_snNumber", $responseData->{data}[$i]{snNumber});
+					readingsBulkUpdate($hash, "Device_".$k."_productName", $responseData->{data}[$i]{productName});
+					readingsBulkUpdate($hash, "Device_".$k."_name", $responseData->{data}[$i]{name});
+					readingsBulkUpdate($hash, "Device_".$k."_subscriptions", $subscriptions);
 				readingsEndUpdate($hash, 1);
 			}
 			
@@ -281,14 +281,14 @@ sub Zendure_Get {
 	
 	if ($opt eq "AccessToken"){
 		if(defined($hash->{helper}{auth})){
-	        	if(%{$hash->{helper}{auth}}){
-	        		Zendure_convertBool($hash->{helper}{auth});
-			    	local $Data::Dumper::Deepcopy = 1;
+	        if(%{$hash->{helper}{auth}}){
+	        	Zendure_convertBool($hash->{helper}{auth});
+			    local $Data::Dumper::Deepcopy = 1;
 				$dump = Dumper($hash->{helper}{auth});
 				$dump =~ s{\A\$VAR\d+\s*=\s*}{};
-	        		return "stored data:\n".$dump;
-	        	}
-	    	}
+	        	return "stored data:\n".$dump;
+	        }
+	    }
 		return "No data available: $opt";	
 	} 
 	elsif($opt eq "DeviceList"){
