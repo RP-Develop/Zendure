@@ -12,6 +12,7 @@ Da der Token die ClientId im MQTT Client ist, muss bei Ungültigkeit die Konfigu
 
 ### Fhem
 **define \<name\> Zendure \<user\> \<password\>**
+
 User und Password sind die vom zweiten Zendure Account.
 
 **set \<name\> Login**
