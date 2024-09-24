@@ -46,12 +46,12 @@ sub Zendure_Set($$@) {
 	my $list = "Login:noArg";
 
 	if ($cmd eq "Login") {
-		
+
 		Zendure_getAccessToken($hash);
-	    
-	    readingsSingleUpdate($hash, 'state', $cmd, 1 );
-	    
-	    return undef;
+
+		readingsSingleUpdate($hash, 'state', $cmd, 1 );
+
+		return undef;
 	}
 
 	return "Unknown argument $cmd, choose one of $list";
@@ -92,12 +92,12 @@ sub Zendure_getAccessToken{
 	};
 
 	my $param = {
-		"url"        	=> $url,
-		"method"     	=> "POST",                                                                                 
-		"timeout"    	=> 5,
-		"header"     	=> $header, 
-		"data"       	=> $json_body, 
-		"hash" 			=> $hash,
+		"url"			=> $url,
+		"method"		=> "POST",                                                                                 
+		"timeout"		=> 5,
+		"header"		=> $header, 
+		"data"			=> $json_body, 
+		"hash"			=> $hash,
 		"command" 		=> "getAccessToken",
 		"callback"		=> \&Zendure_parseRequestAnswer,
 		"loglevel" 		=> AttrVal($name, "verbose", 4)
@@ -108,7 +108,7 @@ sub Zendure_getAccessToken{
 			"## Body ##############\n".$json_body."\n";
 
 	HttpUtils_NonblockingGet( $param );
-	
+
 	return undef;
 }
 
@@ -131,7 +131,7 @@ sub Zendure_getDeviceList{
 		"Accept-Language" 	=> 'de-DE',
 		"appVersion" 		=> '4.3.1',
 		"User-Agent" 		=> 'Zendure/4.3.1 (iPhone; iOS 14.4.2; Scale/3.00)',
-		"Accept" 			=> '*/*',
+		"Accept"			=> '*/*',
 		"Authorization" 	=> "Basic Q29uc3VtZXJBcHA6NX4qUmRuTnJATWg0WjEyMw==",
 		"Blade-Auth" 		=> $bladeAuth        
 	};
@@ -153,7 +153,7 @@ sub Zendure_getDeviceList{
 			"## Body ##############\n".$json_body."\n";
 
 	HttpUtils_NonblockingGet( $param );
-	
+
 	return undef;
 }
 
@@ -161,9 +161,9 @@ sub Zendure_parseRequestAnswer {
 	my ($param, $err, $data) = @_;
 	my $hash = $param->{hash};
 	my $name = $hash->{NAME};
-	
+
 	my $responseData;
-	
+
 	my $error 		= "not defined";
 	my $message 	= "not defined";
 	my $statusCode 	= "not defined";
@@ -179,13 +179,13 @@ sub Zendure_parseRequestAnswer {
 			"## Data ##############\n".$data."\n".
 			"## Header ############\n".$param->{httpheader}."\n";
   
-  		# $param->{code} auswerten?
-  		unless (($param->{code} == 200) || ($param->{code} == 201) || ($param->{code} == 401) || ($param->{code} == 403)){
-	        Log3 $name, 1, $name.": error while HTTP requesting ".$param->{url}." - code: ".$param->{code}; 
-	        readingsSingleUpdate($hash, 'state', 'error', 1 );
-	        return undef;
-  		}
-  		
+		# $param->{code} auswerten?
+		unless (($param->{code} == 200) || ($param->{code} == 201) || ($param->{code} == 401) || ($param->{code} == 403)){
+			Log3 $name, 1, $name.": error while HTTP requesting ".$param->{url}." - code: ".$param->{code}; 
+			readingsSingleUpdate($hash, 'state', 'error', 1 );
+			return undef;
+		}
+
 		# testen ob JSON OK ist
 		if($data =~ m/\{.*\}/s){
 			eval{
@@ -193,51 +193,51 @@ sub Zendure_parseRequestAnswer {
 				#HomebridgeUIAPI_convertBool($responseData);
 			};
 			if($@){
-		  		my $error = $@;
-		  		$error =~ m/^(.*?)\sat\s(.*?)$/;
-		    	Log3 $name, 1, $name.": error while HTTP requesting of command '".$param->{command}."' - Error while JSON decode: $1 ";
-		    	Log3 $name, 5, $name.": <parseRequestAnswer> JSON decode at: $2";
-		    	readingsSingleUpdate($hash, 'state', 'error', 1 );
-		    	return undef;
+				my $error = $@;
+				$error =~ m/^(.*?)\sat\s(.*?)$/;
+				Log3 $name, 1, $name.": error while HTTP requesting of command '".$param->{command}."' - Error while JSON decode: $1 ";
+				Log3 $name, 5, $name.": <parseRequestAnswer> JSON decode at: $2";
+				readingsSingleUpdate($hash, 'state', 'error', 1 );
+				return undef;
 			}
 			# testen ob Referenz vorhanden
 			if(ref($responseData) ne 'HASH') {
-		    	Log3 $name, 1, $name.": error while HTTP requesting of command '".$param->{command}."' - Error, response isn't a reference!";
-		    	readingsSingleUpdate($hash, 'state', 'error', 1 );
-		    	return undef;
+				Log3 $name, 1, $name.": error while HTTP requesting of command '".$param->{command}."' - Error, response isn't a reference!";
+				readingsSingleUpdate($hash, 'state', 'error', 1 );
+				return undef;
 			}
 		}                                                       
 
-	   	if($param->{command} eq "getAccessToken") { 
-	   		$hash->{helper}{auth} = $responseData;
+		if($param->{command} eq "getAccessToken") { 
+			$hash->{helper}{auth} = $responseData;
 
 			$hash->{helper}{accessToken} = $responseData->{data}{accessToken};
 			$hash->{helper}{userId} = $responseData->{data}{userId};
 			$hash->{helper}{iotUrl} = $responseData->{data}{iotUrl}.":1883";
 	 		$hash->{helper}{iotUserName} = $responseData->{data}{iotUserName};
 	 		$hash->{helper}{iotPassword} = "oK#PCgy6OZxd"; #$responseData->{data}{iotPassword};
-   		
+
 			readingsBeginUpdate($hash); 	
-	 		    readingsBulkUpdate($hash, "MQTT_accessToken", $hash->{helper}{accessToken});
-			    readingsBulkUpdate($hash, "MQTT_userId", $hash->{helper}{userId});
-			    readingsBulkUpdate($hash, "MQTT_iotUrl", $hash->{helper}{iotUrl});
-			    readingsBulkUpdate($hash, "MQTT_iotUserName", $hash->{helper}{iotUserName});
-			    readingsBulkUpdate($hash, "MQTT_iotPassword", $hash->{helper}{iotPassword});
+	 			readingsBulkUpdate($hash, "MQTT_accessToken", $hash->{helper}{accessToken});
+				readingsBulkUpdate($hash, "MQTT_userId", $hash->{helper}{userId});
+				readingsBulkUpdate($hash, "MQTT_iotUrl", $hash->{helper}{iotUrl});
+				readingsBulkUpdate($hash, "MQTT_iotUserName", $hash->{helper}{iotUserName});
+				readingsBulkUpdate($hash, "MQTT_iotPassword", $hash->{helper}{iotPassword});
 			readingsEndUpdate($hash, 1);
 
- 			readingsSingleUpdate($hash, 'state', 'Access Token successful loaded!', 1 );
- 			
- 			# wenn OK, dann Liste holen
- 			Zendure_getDeviceList($hash);
+			readingsSingleUpdate($hash, 'state', 'Access Token successful loaded!', 1 );
+			
+			# wenn OK, dann Liste holen
+			Zendure_getDeviceList($hash);
 			
 		}
 		elsif($param->{command} eq "getDeviceList"){
-	   		$hash->{helper}{devices} = $responseData;
-	   		
-	   		$hash->{devices} = scalar @{$responseData->{data}};
-	   		
-	   		$hash->{helper}{productKey} = $responseData->{data}[0]{productKey};
-	   		$hash->{helper}{deviceKey} = $responseData->{data}[0]{deviceKey};
+			$hash->{helper}{devices} = $responseData;
+		
+			$hash->{devices} = scalar @{$responseData->{data}};
+			
+			$hash->{helper}{productKey} = $responseData->{data}[0]{productKey};
+			$hash->{helper}{deviceKey} = $responseData->{data}[0]{deviceKey};
 			
 			$hash->{helper}{subscriptions} = "";
 			
@@ -247,14 +247,14 @@ sub Zendure_parseRequestAnswer {
 				$subscriptions = "/".$responseData->{data}[$i]{productKey}."/".$responseData->{data}[$i]{deviceKey}."/# iot/".$responseData->{data}[$i]{productKey}."/".$responseData->{data}[$i]{deviceKey}."/#";
 				$hash->{helper}{subscriptions} .= $subscriptions." \n";
 				$k = $i + 1;
-	    		readingsBeginUpdate($hash); 	
-	     		    readingsBulkUpdate($hash, "Device_".$k."_productKey", $responseData->{data}[$i]{productKey});
-	    		    readingsBulkUpdate($hash, "Device_".$k."_deviceKey", $responseData->{data}[$i]{deviceKey});
-	    		    readingsBulkUpdate($hash, "Device_".$k."_snNumber", $responseData->{data}[$i]{snNumber});
-	    		    readingsBulkUpdate($hash, "Device_".$k."_productName", $responseData->{data}[$i]{productName});
-	    		    readingsBulkUpdate($hash, "Device_".$k."_name", $responseData->{data}[$i]{name});
-	    		    readingsBulkUpdate($hash, "Device_".$k."_subscriptions", $subscriptions);
-	            readingsEndUpdate($hash, 1);
+				readingsBeginUpdate($hash); 	
+				readingsBulkUpdate($hash, "Device_".$k."_productKey", $responseData->{data}[$i]{productKey});
+				readingsBulkUpdate($hash, "Device_".$k."_deviceKey", $responseData->{data}[$i]{deviceKey});
+				readingsBulkUpdate($hash, "Device_".$k."_snNumber", $responseData->{data}[$i]{snNumber});
+				readingsBulkUpdate($hash, "Device_".$k."_productName", $responseData->{data}[$i]{productName});
+				readingsBulkUpdate($hash, "Device_".$k."_name", $responseData->{data}[$i]{name});
+				readingsBulkUpdate($hash, "Device_".$k."_subscriptions", $subscriptions);
+				readingsEndUpdate($hash, 1);
 			}
 			
 			readingsSingleUpdate($hash, 'state', 'Device List successful loaded!', 1 );
