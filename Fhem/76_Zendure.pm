@@ -13,9 +13,9 @@ sub Zendure_Initialize($) {
 	my ($hash) = @_;
 
 	# Definieren von FHEM-Funktionen
-	$hash->{DefFn}    = "Zendure_Define";
-	$hash->{SetFn}    = "Zendure_Set";
-	$hash->{GetFn}    = "Zendure_Get";
+	$hash->{DefFn}	= "Zendure_Define";
+	$hash->{SetFn}	= "Zendure_Set";
+	$hash->{GetFn}	= "Zendure_Get";
 }
 
 # Definition des Geräts in FHEM
@@ -25,14 +25,14 @@ sub Zendure_Define($$) {
 
 	return "Usage: define <name> Zendure <user> <password>" if (int(@args) != 4);
 
-	my $name      	= $args[0];
+	my $name		= $args[0];
 	my $user 		= $args[2];
-	my $password 	= $args[3];
+	my $password	= $args[3];
 
 	$hash->{helper}{user} 		= $user;
 	$hash->{helper}{password} 	= $password ;
-	$hash->{NAME}      			= $name;
-	$hash->{STATE}     			= 'initialized';
+	$hash->{NAME}				= $name;
+	$hash->{STATE}				= 'initialized';
 
 	readingsSingleUpdate($hash, 'state', 'initialized', 1 );
 
@@ -64,31 +64,31 @@ sub Zendure_getAccessToken{
 	
 	my $url = "https://app.zendure.tech/v2/auth/app/token";
 
-	my $user 		= $hash->{helper}{user};
+	my $user		= $hash->{helper}{user};
 	my $password	= $hash->{helper}{password}; 	
 	
 	my $auth = "Basic ".encode_base64("$user:$password", ''); # '' verhindert ein NewLine
 
 	my $body = {
-		password 	=> $password,
-		account 	=> $user,
-		appId 		=> '121c83f761305d6cf7b',
-		appType 	=> 'iOS',
-		grantType 	=> 'password',
-		tenantId 	=> ''
+		password	=> $password,
+		account		=> $user,
+		appId		=> '121c83f761305d6cf7b',
+		appType		=> 'iOS',
+		grantType	=> 'password',
+		tenantId	=> ''
 	};
 
 	# HTTP POST Anfrage senden
 	my $json_body = encode_json($body);
 	
 	my $header    = {
-		"Content-Type" 		=> 'application/json',
-		"Accept-Language" 	=> 'de-DE',
-		"appVersion" 		=> '4.3.1',
-		"User-Agent" 		=> 'Zendure/4.3.1 (iPhone; iOS 14.4.2; Scale/3.00)',
-		"Accept" 			=> '*/*',
-		"Authorization" 	=> $auth,
-		"Blade-Auth" 		=> 'bearer (null)',        
+		"Content-Type"		=> 'application/json',
+		"Accept-Language"	=> 'de-DE',
+		"appVersion"		=> '4.3.1',
+		"User-Agent"		=> 'Zendure/4.3.1 (iPhone; iOS 14.4.2; Scale/3.00)',
+		"Accept"			=> '*/*',
+		"Authorization"		=> $auth,
+		"Blade-Auth"		=> 'bearer (null)',        
 	};
 
 	my $param = {
@@ -98,9 +98,9 @@ sub Zendure_getAccessToken{
 		"header"		=> $header, 
 		"data"			=> $json_body, 
 		"hash"			=> $hash,
-		"command" 		=> "getAccessToken",
+		"command"		=> "getAccessToken",
 		"callback"		=> \&Zendure_parseRequestAnswer,
-		"loglevel" 		=> AttrVal($name, "verbose", 4)
+		"loglevel"		=> AttrVal($name, "verbose", 4)
 	};
 
 	Log3 $name, 5, $name.": <Request> URL:".$url." send:\n".
@@ -127,25 +127,25 @@ sub Zendure_getDeviceList{
 	my $bladeAuth = "bearer ".$hash->{helper}{accessToken};
 	
 	my $header    = {
-		"Content-Type" 		=> 'application/json',
-		"Accept-Language" 	=> 'de-DE',
-		"appVersion" 		=> '4.3.1',
-		"User-Agent" 		=> 'Zendure/4.3.1 (iPhone; iOS 14.4.2; Scale/3.00)',
+		"Content-Type"		=> 'application/json',
+		"Accept-Language"	=> 'de-DE',
+		"appVersion"		=> '4.3.1',
+		"User-Agent"		=> 'Zendure/4.3.1 (iPhone; iOS 14.4.2; Scale/3.00)',
 		"Accept"			=> '*/*',
-		"Authorization" 	=> "Basic Q29uc3VtZXJBcHA6NX4qUmRuTnJATWg0WjEyMw==",
-		"Blade-Auth" 		=> $bladeAuth        
+		"Authorization"		=> "Basic Q29uc3VtZXJBcHA6NX4qUmRuTnJATWg0WjEyMw==",
+		"Blade-Auth"		=> $bladeAuth        
 	};
 
 	my $param = {
-		"url"        	=> $url,
-		"method"     	=> "POST",                                                                                 
-		"timeout"    	=> 5,
-		"header"     	=> $header, 
-		"data"       	=> $json_body, 
-		"hash" 			=> $hash,
-		"command" 		=> "getDeviceList",
+		"url"			=> $url,
+		"method"		=> "POST",                                                                                 
+		"timeout"		=> 5,
+		"header"		=> $header, 
+		"data"			=> $json_body, 
+		"hash"			=> $hash,
+		"command"		=> "getDeviceList",
 		"callback"		=> \&Zendure_parseRequestAnswer,
-		"loglevel" 		=> AttrVal($name, "verbose", 4)
+		"loglevel"		=> AttrVal($name, "verbose", 4)
 	};
 
 	Log3 $name, 5, $name.": <Request> URL:".$url." send:\n".
@@ -164,9 +164,9 @@ sub Zendure_parseRequestAnswer {
 
 	my $responseData;
 
-	my $error 		= "not defined";
-	my $message 	= "not defined";
-	my $statusCode 	= "not defined";
+	my $error		= "not defined";
+	my $message		= "not defined";
+	my $statusCode	= "not defined";
 
 	if($err ne ""){
 		Log3 $name, 1, $name.": error while HTTP requesting ".$param->{url}." - $err"; 
@@ -293,19 +293,19 @@ sub Zendure_Get {
 	} 
 	elsif($opt eq "DeviceList"){
 		if(defined($hash->{helper}{devices})){
-	        if(%{$hash->{helper}{devices}}){
-	        	Zendure_convertBool($hash->{helper}{devices});
-			    local $Data::Dumper::Deepcopy = 1;
+			if(%{$hash->{helper}{devices}}){
+				Zendure_convertBool($hash->{helper}{devices});
+				local $Data::Dumper::Deepcopy = 1;
 				$dump = Dumper($hash->{helper}{devices});
 				$dump =~ s{\A\$VAR\d+\s*=\s*}{};
-	            return "stored data:\n".$dump;
-	        }
-	    }
+				return "stored data:\n".$dump;
+			}
+		}
 		return "No data available: $opt";
-	}	
+	}
 	elsif($opt eq "ConfigProposal"){
 		if(defined($hash->{helper}{auth}) && defined($hash->{helper}{devices})){
-	        if((%{$hash->{helper}{auth}}) && (%{$hash->{helper}{devices}})){
+			if((%{$hash->{helper}{auth}}) && (%{$hash->{helper}{devices}})){
 				my $text = "Config Proposal:\n";
 				$text .= "\n";
 				$text .= "MQTT2_CLIENT\n";
