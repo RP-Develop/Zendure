@@ -358,7 +358,7 @@ sub Zendure_Get {
 		}
 		return "No data available: $opt";
 	}
-			
+
 	return $usage; 
 }
 
