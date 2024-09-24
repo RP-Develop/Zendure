@@ -320,8 +320,8 @@ sub Zendure_Get {
 				$text .= "\n";
 				$text .= "MQTT2_DEVICE - only the first device!\n";
 				$text .= "\n";
-				$text .= "define &lt\;name&gt\; MQTT2_DEVICE &lt\;name&gt\;\n";
-				$text .= "attr &lt\;name&gt\; IODev &lt\;name&gt\; of MQTT2_CLIENT>\n";
+				$text .= "define &lt\;name&gt\; MQTT2_DEVICE &lt\;name of MQTT2_CLIENT&gt\;\n";
+				$text .= "attr &lt\;name&gt\; IODev &lt\;name of MQTT2_CLIENT&gt\; \n";
 				$text .= "attr &lt\;name&gt\; readingList &lt\;follow lines&gt\; \n";
 				$text .= ".*/".$hash->{helper}{productKey}."/".$hash->{helper}{deviceKey}."/properties/report:.* { json2nameValue(\$EVENT, 'properties_report_', \$JSONMAP) }\n";
 				$text .= ".*/".$hash->{helper}{productKey}."/".$hash->{helper}{deviceKey}."/event/device:.* { json2nameValue(\$EVENT, 'event_device_', \$JSONMAP) }\n";
@@ -335,10 +335,10 @@ sub Zendure_Get {
 				$text .= ".*iot/".$hash->{helper}{productKey}."/".$hash->{helper}{deviceKey}."/properties/write:.* { json2nameValue(\$EVENT, 'iot_properties_write_', \$JSONMAP) }\n";
 				$text .= ".*iot/".$hash->{helper}{productKey}."/".$hash->{helper}{deviceKey}."/time-sync/reply:.* { json2nameValue(\$EVENT, 'iot_time-sync_reply_', \$JSONMAP) }\n";
 				$text .= "attr &lt\;name&gt\; setList &lt\;follow lines as example&gt\; \n";
-				$text .= "Output:100,200,300,400,500,600 iot/".$hash->{helper}{productKey}."/".$hash->{helper}{deviceKey}.'/properties/write {"properties":{"outputLimit":\$EVTPART1}}'." \n";
+				$text .= "Output:100,200,300,400,500,600 iot/".$hash->{helper}{productKey}."/".$hash->{helper}{deviceKey}.'/properties/write {"properties":{"outputLimit"'.":\$EVTPART1}} \n";
 				$text .= "Update:noArg iot/".$hash->{helper}{productKey}."/".$hash->{helper}{deviceKey}.'/properties/read {"properties":["getAll"]}'." \n";
-				$text .= "Bypass:0,1,2 iot/".$hash->{helper}{productKey}."/".$hash->{helper}{deviceKey}.'/properties/write {"properties":{"passMode":\$EVTPART1}}'." \n";
-				$text .= "autoRecover:0,1 iot/".$hash->{helper}{productKey}."/".$hash->{helper}{deviceKey}.'/properties/write {"properties":{"autoRecover":\$EVTPART1}}'." \n";
+				$text .= "Bypass:0,1,2 iot/".$hash->{helper}{productKey}."/".$hash->{helper}{deviceKey}.'/properties/write {"properties":{"passMode"'.":\$EVTPART1}} \n";
+				$text .= "autoRecover:0,1 iot/".$hash->{helper}{productKey}."/".$hash->{helper}{deviceKey}.'/properties/write {"properties":{"autoRecover"'.":\$EVTPART1}} \n";
 				$text .= "\n";
 				$text .= "\n";
 				$text .= "\n";
