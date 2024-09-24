@@ -67,7 +67,7 @@ sub Zendure_getAccessToken{
     my $user 		= $hash->{helper}{user};
     my $password	= $hash->{helper}{password}; 	
     
-    my $auth = "Basic ".encode_base64("$user:$password", ''); # verhindert ein NewLine
+    my $auth = "Basic ".encode_base64("$user:$password", ''); # '' verhindert ein NewLine
 
     my $body = {
     	password 	=> $password,
