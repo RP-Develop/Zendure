@@ -14,17 +14,17 @@ Fhem
 define \<name\> Zendure \<user\> \<password\> 
 User und Password sind die vom zweiten Zendure Account.
 
-set <name>  Login
+set \<name\> Login
 Ruft einen Token ab, wie auch die Device List. Der Token ist gültig, mindestens so lange, bis keine neuer abgefragt wird, z.B. über die Zendure App (zweiter Account).
 Der Token wird als clientId für einen MQTT Client benutzt.
 
 In den Readings werden weiter Informationen zum Anlegen des Zugangs für den MQTT Server angegeben. Dies ist der MQTT Server, mit dem auch die originale Zendure App kommuniziert.
 
-get  <name>  AccessToken
+get  \<name\>  AccessToken
 Zeigt die Antwort der Tokenabfrage.
 
-get  <name>  DeviceList
+get  \<name\>  DeviceList
 Zeigt die Antwort der DeviceList abfrage.
 
-get  <name>  ConfigProposal
+get  \<name\>  ConfigProposal
 Zeit ein vollständig ausgefülltes Set zur Konfiguration eines MQTT2_CIENT und MQTT2_DEVICE, wie auch ein Vorschlag zur Konfiguarion einer Bridge im Mosquitto.
