@@ -1,7 +1,7 @@
 # Zendure
  Control of Zendure
 
-Mit diesem Fhem Modul kann ein Login für Zendure erzeigt werden. Anschließend kann der Zugriff auf alle relevanten Daten über MQTT erfolgen, wie auch Werte published werden.
+Mit diesem Fhem Modul kann ein Login für Zendure erzeugt werden. Anschließend kann der Zugriff auf alle relevanten Daten über MQTT erfolgen, wie auch Werte published werden.
 
 Voraussetzung:
 Ein zweiter Zendure Account ist notwendig. Im Hauptaccount  wird sodann der Zugriff für den zweiten freigegeben. Notwendig dafür ist eine zweite Emailadresse. Der Vorgang ist selbsterklärend.
@@ -11,7 +11,7 @@ Die App mit dem zweiten Account kann nicht ohne weiteres benutzt werden. Erfolgt
 Da der Token die ClientId im MQTT Client ist, muss bei Ungültigkeit die Konfiguration geändert werden. Nicht schön, ist aber vorerst so.
 
 Fhem
-define <name> Zendure <user> <password> 
+define \<name\> Zendure \<user\> \<password\> 
 User und Password sind die vom zweiten Zendure Account.
 
 set <name>  Login
