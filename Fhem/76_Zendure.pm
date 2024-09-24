@@ -10,33 +10,33 @@ use Data::Dumper;
 use MIME::Base64;
 
 sub Zendure_Initialize($) {
-    my ($hash) = @_;
+	my ($hash) = @_;
 
-    # Definieren von FHEM-Funktionen
-    $hash->{DefFn}    = "Zendure_Define";
-    $hash->{SetFn}    = "Zendure_Set";
-    $hash->{GetFn}    = "Zendure_Get";
+	# Definieren von FHEM-Funktionen
+	$hash->{DefFn}    = "Zendure_Define";
+	$hash->{SetFn}    = "Zendure_Set";
+	$hash->{GetFn}    = "Zendure_Get";
 }
 
 # Definition des Geräts in FHEM
 sub Zendure_Define($$) {
-    my ($hash, $def) = @_;
-    my @args = split("[ \t][ \t]*", $def);
+	my ($hash, $def) = @_;
+	my @args = split("[ \t][ \t]*", $def);
 
-    return "Usage: define <name> Zendure <user> <password>" if (int(@args) != 4);
+	return "Usage: define <name> Zendure <user> <password>" if (int(@args) != 4);
 
-    my $name      	= $args[0];
-    my $user 		= $args[2];
-    my $password 	= $args[3];
+	my $name      	= $args[0];
+	my $user 		= $args[2];
+	my $password 	= $args[3];
 
-    $hash->{helper}{user} 		= $user;
-    $hash->{helper}{password} 	= $password ;
-    $hash->{NAME}      			= $name;
-    $hash->{STATE}     			= 'initialized';
+	$hash->{helper}{user} 		= $user;
+	$hash->{helper}{password} 	= $password ;
+	$hash->{NAME}      			= $name;
+	$hash->{STATE}     			= 'initialized';
 
 	readingsSingleUpdate($hash, 'state', 'initialized', 1 );
 
-    return undef;
+	return undef;
 }
 
 
@@ -45,7 +45,7 @@ sub Zendure_Set($$@) {
 
 	my $list = "Login:noArg";
 
-    if ($cmd eq "Login") {
+	if ($cmd eq "Login") {
 		
 		Zendure_getAccessToken($hash);
 	    
@@ -54,7 +54,7 @@ sub Zendure_Set($$@) {
 	    return undef;
 	}
 
-    return "Unknown argument $cmd, choose one of $list";
+	return "Unknown argument $cmd, choose one of $list";
 }
 
 
@@ -64,32 +64,32 @@ sub Zendure_getAccessToken{
 	
 	my $url = "https://app.zendure.tech/v2/auth/app/token";
 
-    my $user 		= $hash->{helper}{user};
-    my $password	= $hash->{helper}{password}; 	
-    
-    my $auth = "Basic ".encode_base64("$user:$password", ''); # '' verhindert ein NewLine
+	my $user 		= $hash->{helper}{user};
+	my $password	= $hash->{helper}{password}; 	
+	
+	my $auth = "Basic ".encode_base64("$user:$password", ''); # '' verhindert ein NewLine
 
-    my $body = {
-    	password 	=> $password,
-    	account 	=> $user,
-    	appId 		=> '121c83f761305d6cf7b',
-    	appType 	=> 'iOS',
-    	grantType 	=> 'password',
-    	tenantId 	=> ''
-    };
+	my $body = {
+		password 	=> $password,
+		account 	=> $user,
+		appId 		=> '121c83f761305d6cf7b',
+		appType 	=> 'iOS',
+		grantType 	=> 'password',
+		tenantId 	=> ''
+	};
 
-    # HTTP POST Anfrage senden
-    my $json_body = encode_json($body);
-    
-    my $header    = {
-        "Content-Type" 		=> 'application/json',
-    	"Accept-Language" 	=> 'de-DE',
-    	"appVersion" 		=> '4.3.1',
-    	"User-Agent" 		=> 'Zendure/4.3.1 (iPhone; iOS 14.4.2; Scale/3.00)',
-    	"Accept" 			=> '*/*',
-    	"Authorization" 	=> $auth,
-    	"Blade-Auth" 		=> 'bearer (null)',        
-    };
+	# HTTP POST Anfrage senden
+	my $json_body = encode_json($body);
+	
+	my $header    = {
+		"Content-Type" 		=> 'application/json',
+		"Accept-Language" 	=> 'de-DE',
+		"appVersion" 		=> '4.3.1',
+		"User-Agent" 		=> 'Zendure/4.3.1 (iPhone; iOS 14.4.2; Scale/3.00)',
+		"Accept" 			=> '*/*',
+		"Authorization" 	=> $auth,
+		"Blade-Auth" 		=> 'bearer (null)',        
+	};
 
 	my $param = {
 		"url"        	=> $url,
@@ -103,9 +103,9 @@ sub Zendure_getAccessToken{
 		"loglevel" 		=> AttrVal($name, "verbose", 4)
 	};
 
-    Log3 $name, 5, $name.": <Request> URL:".$url." send:\n".
-            "## Header ############\n".Dumper($param->{header})."\n".
-            "## Body ##############\n".$json_body."\n";
+	Log3 $name, 5, $name.": <Request> URL:".$url." send:\n".
+			"## Header ############\n".Dumper($param->{header})."\n".
+			"## Body ##############\n".$json_body."\n";
 
 	HttpUtils_NonblockingGet( $param );
 	
@@ -119,22 +119,22 @@ sub Zendure_getDeviceList{
 	
 	my $url = "https://app.zendure.tech/v2/productModule/device/queryDeviceListByConsumerId";
 
-    my $body = {};
+	my $body = {};
 
-    # HTTP POST Anfrage senden
-    my $json_body = encode_json($body);
-    
-    my $bladeAuth = "bearer ".$hash->{helper}{accessToken};
-    
-    my $header    = {
-        "Content-Type" 		=> 'application/json',
-    	"Accept-Language" 	=> 'de-DE',
-    	"appVersion" 		=> '4.3.1',
-    	"User-Agent" 		=> 'Zendure/4.3.1 (iPhone; iOS 14.4.2; Scale/3.00)',
-    	"Accept" 			=> '*/*',
-    	"Authorization" 	=> "Basic Q29uc3VtZXJBcHA6NX4qUmRuTnJATWg0WjEyMw==",
-    	"Blade-Auth" 		=> $bladeAuth        
-    };
+	# HTTP POST Anfrage senden
+	my $json_body = encode_json($body);
+	
+	my $bladeAuth = "bearer ".$hash->{helper}{accessToken};
+	
+	my $header    = {
+		"Content-Type" 		=> 'application/json',
+		"Accept-Language" 	=> 'de-DE',
+		"appVersion" 		=> '4.3.1',
+		"User-Agent" 		=> 'Zendure/4.3.1 (iPhone; iOS 14.4.2; Scale/3.00)',
+		"Accept" 			=> '*/*',
+		"Authorization" 	=> "Basic Q29uc3VtZXJBcHA6NX4qUmRuTnJATWg0WjEyMw==",
+		"Blade-Auth" 		=> $bladeAuth        
+	};
 
 	my $param = {
 		"url"        	=> $url,
@@ -148,9 +148,9 @@ sub Zendure_getDeviceList{
 		"loglevel" 		=> AttrVal($name, "verbose", 4)
 	};
 
-    Log3 $name, 5, $name.": <Request> URL:".$url." send:\n".
-            "## Header ############\n".Dumper($param->{header})."\n".
-            "## Body ##############\n".$json_body."\n";
+	Log3 $name, 5, $name.": <Request> URL:".$url." send:\n".
+			"## Header ############\n".Dumper($param->{header})."\n".
+			"## Body ##############\n".$json_body."\n";
 
 	HttpUtils_NonblockingGet( $param );
 	
@@ -168,16 +168,16 @@ sub Zendure_parseRequestAnswer {
 	my $message 	= "not defined";
 	my $statusCode 	= "not defined";
 
-    if($err ne ""){
-        Log3 $name, 1, $name.": error while HTTP requesting ".$param->{url}." - $err"; 
-        readingsSingleUpdate($hash, 'state', 'error', 1 );
-        return undef;
-    }
-    elsif($data ne ""){
+	if($err ne ""){
+		Log3 $name, 1, $name.": error while HTTP requesting ".$param->{url}." - $err"; 
+		readingsSingleUpdate($hash, 'state', 'error', 1 );
+		return undef;
+	}
+	elsif($data ne ""){
 		Log3 $name, 5, $name.": <parseRequestAnswer> URL:".$param->{url}." returned data:\n".
-            "## HTTP-Statuscode ###\n".$param->{code} ."\n".
-            "## Data ##############\n".$data."\n".
-            "## Header ############\n".$param->{httpheader}."\n";
+			"## HTTP-Statuscode ###\n".$param->{code} ."\n".
+			"## Data ##############\n".$data."\n".
+			"## Header ############\n".$param->{httpheader}."\n";
   
   		# $param->{code} auswerten?
   		unless (($param->{code} == 200) || ($param->{code} == 201) || ($param->{code} == 401) || ($param->{code} == 403)){
@@ -188,56 +188,56 @@ sub Zendure_parseRequestAnswer {
   		
 		# testen ob JSON OK ist
 		if($data =~ m/\{.*\}/s){
-        	eval{
-        		$responseData = decode_json($data);
-        		#HomebridgeUIAPI_convertBool($responseData);
-        	};
-        	if($@){
+			eval{
+				$responseData = decode_json($data);
+				#HomebridgeUIAPI_convertBool($responseData);
+			};
+			if($@){
 		  		my $error = $@;
 		  		$error =~ m/^(.*?)\sat\s(.*?)$/;
 		    	Log3 $name, 1, $name.": error while HTTP requesting of command '".$param->{command}."' - Error while JSON decode: $1 ";
 		    	Log3 $name, 5, $name.": <parseRequestAnswer> JSON decode at: $2";
 		    	readingsSingleUpdate($hash, 'state', 'error', 1 );
 		    	return undef;
-        	}
-        	# testen ob Referenz vorhanden
-        	if(ref($responseData) ne 'HASH') {
+			}
+			# testen ob Referenz vorhanden
+			if(ref($responseData) ne 'HASH') {
 		    	Log3 $name, 1, $name.": error while HTTP requesting of command '".$param->{command}."' - Error, response isn't a reference!";
 		    	readingsSingleUpdate($hash, 'state', 'error', 1 );
 		    	return undef;
-        	}
+			}
 		}                                                       
 
-       	if($param->{command} eq "getAccessToken") { 
-       		$hash->{helper}{auth} = $responseData;
+	   	if($param->{command} eq "getAccessToken") { 
+	   		$hash->{helper}{auth} = $responseData;
 
-    		$hash->{helper}{accessToken} = $responseData->{data}{accessToken};
-    		$hash->{helper}{userId} = $responseData->{data}{userId};
-    		$hash->{helper}{iotUrl} = $responseData->{data}{iotUrl}.":1883";
-     		$hash->{helper}{iotUserName} = $responseData->{data}{iotUserName};
-     		$hash->{helper}{iotPassword} = "oK#PCgy6OZxd"; #$responseData->{data}{iotPassword};
+			$hash->{helper}{accessToken} = $responseData->{data}{accessToken};
+			$hash->{helper}{userId} = $responseData->{data}{userId};
+			$hash->{helper}{iotUrl} = $responseData->{data}{iotUrl}.":1883";
+	 		$hash->{helper}{iotUserName} = $responseData->{data}{iotUserName};
+	 		$hash->{helper}{iotPassword} = "oK#PCgy6OZxd"; #$responseData->{data}{iotPassword};
    		
-    		readingsBeginUpdate($hash); 	
-     		    readingsBulkUpdate($hash, "MQTT_accessToken", $hash->{helper}{accessToken});
-    		    readingsBulkUpdate($hash, "MQTT_userId", $hash->{helper}{userId});
-    		    readingsBulkUpdate($hash, "MQTT_iotUrl", $hash->{helper}{iotUrl});
-    		    readingsBulkUpdate($hash, "MQTT_iotUserName", $hash->{helper}{iotUserName});
-    		    readingsBulkUpdate($hash, "MQTT_iotPassword", $hash->{helper}{iotPassword});
-            readingsEndUpdate($hash, 1);
+			readingsBeginUpdate($hash); 	
+	 		    readingsBulkUpdate($hash, "MQTT_accessToken", $hash->{helper}{accessToken});
+			    readingsBulkUpdate($hash, "MQTT_userId", $hash->{helper}{userId});
+			    readingsBulkUpdate($hash, "MQTT_iotUrl", $hash->{helper}{iotUrl});
+			    readingsBulkUpdate($hash, "MQTT_iotUserName", $hash->{helper}{iotUserName});
+			    readingsBulkUpdate($hash, "MQTT_iotPassword", $hash->{helper}{iotPassword});
+			readingsEndUpdate($hash, 1);
 
  			readingsSingleUpdate($hash, 'state', 'Access Token successful loaded!', 1 );
  			
  			# wenn OK, dann Liste holen
  			Zendure_getDeviceList($hash);
-    		
+			
 		}
 		elsif($param->{command} eq "getDeviceList"){
-       		$hash->{helper}{devices} = $responseData;
-       		
-       		$hash->{devices} = scalar @{$responseData->{data}};
-       		
-       		$hash->{helper}{productKey} = $responseData->{data}[0]{productKey};
-       		$hash->{helper}{deviceKey} = $responseData->{data}[0]{deviceKey};
+	   		$hash->{helper}{devices} = $responseData;
+	   		
+	   		$hash->{devices} = scalar @{$responseData->{data}};
+	   		
+	   		$hash->{helper}{productKey} = $responseData->{data}[0]{productKey};
+	   		$hash->{helper}{deviceKey} = $responseData->{data}[0]{deviceKey};
 			
 			$hash->{helper}{subscriptions} = "";
 			
@@ -264,23 +264,23 @@ sub Zendure_parseRequestAnswer {
 			Log3 $name, 5, $name.": <parseRequestAnswer> unhandled command $param->{command}";
 		}
 		return undef;
-    }
-    Log3 $name, 1, $name.": error while HTTP requesting URL:".$param->{url}." - no data!";
-    return undef;
+	}
+	Log3 $name, 1, $name.": error while HTTP requesting URL:".$param->{url}." - no data!";
+	return undef;
 }
 
 sub Zendure_Get {
 	my ($hash, $name, $opt, @args) = @_;
 
-    return "\"get $name\" needs at least one argument" unless(defined($opt));
+	return "\"get $name\" needs at least one argument" unless(defined($opt));
 
-    Log3 $name, 5, $name.": <Get> called for $name : msg = $opt";
+	Log3 $name, 5, $name.": <Get> called for $name : msg = $opt";
 
 	my $dump;
 	my $usage = "Unknown argument $opt, choose one of AccessToken:noArg DeviceList:noArg ConfigProposal:noArg";
 	
 	if ($opt eq "AccessToken"){
-        if(defined($hash->{helper}{auth})){
+		if(defined($hash->{helper}{auth})){
 	        if(%{$hash->{helper}{auth}}){
 	        	Zendure_convertBool($hash->{helper}{auth});
 			    local $Data::Dumper::Deepcopy = 1;
@@ -292,7 +292,7 @@ sub Zendure_Get {
 		return "No data available: $opt";	
 	} 
 	elsif($opt eq "DeviceList"){
-        if(defined($hash->{helper}{devices})){
+		if(defined($hash->{helper}{devices})){
 	        if(%{$hash->{helper}{devices}}){
 	        	Zendure_convertBool($hash->{helper}{devices});
 			    local $Data::Dumper::Deepcopy = 1;
@@ -366,26 +366,26 @@ sub Zendure_Get {
 
 sub Zendure_convertBool {
 
-    local *_convert_bools = sub {
-        my $ref_type = ref($_[0]);
-        if ($ref_type eq 'HASH') {
-            _convert_bools($_) for values(%{ $_[0] });
-        }
-        elsif ($ref_type eq 'ARRAY') {
-            _convert_bools($_) for @{ $_[0] };
-        }
-        elsif (
-               $ref_type eq 'JSON::PP::Boolean'           # JSON::PP
-            || $ref_type eq 'Types::Serialiser::Boolean'  # JSON::XS
-        ) {
-            $_[0] = $_[0] ? 1 : 0;
-        }
-        else {
-            # Nothing.
-        }
-    };
+	local *_convert_bools = sub {
+		my $ref_type = ref($_[0]);
+		if ($ref_type eq 'HASH') {
+			_convert_bools($_) for values(%{ $_[0] });
+		}
+		elsif ($ref_type eq 'ARRAY') {
+			_convert_bools($_) for @{ $_[0] };
+		}
+		elsif (
+			   $ref_type eq 'JSON::PP::Boolean'           # JSON::PP
+			|| $ref_type eq 'Types::Serialiser::Boolean'  # JSON::XS
+		) {
+			$_[0] = $_[0] ? 1 : 0;
+		}
+		else {
+			# Nothing.
+		}
+	};
 
-    &_convert_bools;
+	&_convert_bools;
 
 }
 
