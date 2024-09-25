@@ -17,7 +17,7 @@ User und Password sind die vom zweiten Zendure Account.
 
 **set \<name\> Login**
 
-Ruft einen Token ab, wie auch die Device List. Der Token ist gültig, mindestens so lange, bis keine neuer abgefragt wird, z.B. über die Zendure App (zweiter Account).
+Ruft einen Token ab, wie auch die Device List. Der Token ist gültig, mindestens so lange, bis ein Neuer abgefragt wird, z.B. über die Zendure App (zweiter Account).
 Der Token wird als clientId für einen MQTT Client benutzt.
 
 In den Readings werden weiter Informationen zum Anlegen des Zugangs für den MQTT Server angegeben. Dies ist der MQTT Server, mit dem auch die originale Zendure App kommuniziert.
@@ -37,4 +37,5 @@ Zeigt ein vollständig ausgefülltes Set zur Konfiguration eines MQTT2_CIENT und
 ### Quellen
 
 [GitHub Zendure/developer-device-data-report](https://github.com/Zendure/developer-device-data-report)
+
 [GitHub nograx/ioBroker.zendure-solarflow](https://github.com/nograx/ioBroker.zendure-solarflow)
