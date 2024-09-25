@@ -1,10 +1,10 @@
-# Zendure
- ## Control of Zendure
+# Zendure - Fhem
+ ## Zendure - Fhem Integration
 
-Mit diesem Fhem Modul kann ein Login für Zendure erzeugt werden. Anschließend kann der Zugriff auf alle relevanten Daten über MQTT erfolgen, wie auch Werte published werden.
+Mit diesem Fhem Modul können die Daten für ein Zendure Login erzeugt werden. Mit diesen Zugangsdaten kann anschließend ein MQTT Client konfiguriert werden. Damit können Werte empfangen, wie auch gesendet (published) werden.
 
 ### Voraussetzung:
-Ein zweiter Zendure Account ist notwendig. Im Hauptaccount  wird sodann der Zugriff für den zweiten freigegeben. Notwendig dafür ist eine zweite Emailadresse. Der Vorgang ist selbsterklärend.
+Ein zweiter Zendure Account ist notwendig. Im Hauptaccount wird sodann der Zugriff für den Zweiten freigegeben. Notwendig dafür ist eine zweite Emailadresse.
 
 ### Einschränkung:
 Die App mit dem zweiten Account kann nicht ohne weiteres benutzt werden. Erfolgt dies trotzdem, kommen beide Anmeldungen (Fhem + Zendure 2. Account) in Konflikt und ggf. wird der Token ungültig.
@@ -34,3 +34,7 @@ Zeigt die Antwort der DeviceList abfrage.
 
 Zeigt ein vollständig ausgefülltes Set zur Konfiguration eines MQTT2_CIENT und MQTT2_DEVICE, wie auch ein Vorschlag zur Konfiguration einer Bridge im Mosquitto.
 
+### Quellen
+
+[GitHub Zendure/developer-device-data-report](https://github.com/Zendure/developer-device-data-report)
+[GitHub nograx/ioBroker.zendure-solarflow](https://github.com/nograx/ioBroker.zendure-solarflow)
