@@ -1,4 +1,4 @@
-# FHEM Modul für Zendure Login Daten
+# FHEM Modul für Zendure Login Daten 
 package main;
 
 use strict;
