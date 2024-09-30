@@ -32,7 +32,7 @@ Ein MQTT2_CLIENT wird normalerweise mit HOST:Port definiert. In diesem Falle nic
 
 Username und Password sind vom zweiten Zendure Account. 
 
-Die Parameter im Ausdruck `*Zendure_connect($NAME,"global",1)` haben folgende Funktion:
+Die Parameter im Ausdruck `Zendure_connect($NAME,"global",1)` haben folgende Funktion:
 
 2. Parameter "global" - bezieht sich auf den Zendure Server. Es gibt einen 'Global' und einen 'EU'. Als Parameterwert kann ' global | Global | v2 ' für den Globalen und ' eu | EU ' für den EU Server verwendet werden. Welcher Server benutzt wird, wird bei der Erstanmeldung festgelegt. Beachte: Ein Wechsel löscht alle gespeicherten Daten.
 
@@ -40,27 +40,27 @@ Die Parameter im Ausdruck `*Zendure_connect($NAME,"global",1)` haben folgende Fu
 
 
 ### Fhem  - 76_Zendure.pm
-**define \<name\> Zendure \<username\> \<password\> \<server\>**
+`define <name> Zendure <username> <password> <server>`
 
 Username und Password sind die vom zweiten Zendure Account.
 
 Parameter "server" - bezieht sich auf den Zendure Server. Es gibt einen 'Global' und einen 'EU'. Als Parameterwert kann ' global | Global | v2 ' für den Globalen und ' eu | EU ' für den EU Server verwendet werden. Welcher Server benutzt wird, wird bei der Erstanmeldung festgelegt. Beachte: Ein Wechsel löscht alle gespeicherten Daten.
 
-**set \<name\> Login**
+`set <name> Login`
 
 Ruft einen Token ab, wie auch die Device List. Der Token ist gültig, mindestens so lange, bis ein anderer Client sich mit den selben Nutzerdaten anmeldet. Der Token wird als clientId für einen MQTT Client benutzt.
 
 In den Readings werden weiter Informationen zum Anlegen des Zugangs für den MQTT Server angegeben. Dies ist der MQTT Server, mit dem auch die originale Zendure App kommuniziert.
 
-**get  \<name\>  AccessToken**
+`get <name> AccessToken`
 
 Zeigt die Antwort der Token Abfrage.
 
-**get  \<name\>  DeviceList**
+`get <name> DeviceList`
 
 Zeigt die Antwort der DeviceList Abfrage.
 
-**get  \<name\>  ConfigProposal**
+`get <name> ConfigProposal`
 
 Zeigt ein vollständig ausgefülltes Set zur Konfiguration eines MQTT2_CIENT und MQTT2_DEVICE, wie auch ein Vorschlag zur Konfiguration einer Bridge im Mosquitto.
 
