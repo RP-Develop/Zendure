@@ -9,6 +9,10 @@ Diese Modul ergänzt einen MQTT2_CLIENT mit einem Zendure Login und erzeugt für
 
 Mit diesem Fhem Modul können die Daten für ein Zendure Login erzeugt werden. Mit diesen Zugangsdaten kann anschließend ein beliebiger MQTT Client konfiguriert werden. 
 
+**update**
+
+update add https://raw.githubusercontent.com/RP-Develop/Zendure/main/controls_Zendure.txt
+
 ### Voraussetzung:
 Ein zweiter Zendure Account ist notwendig. Im Hauptaccount wird der Zugriff für den Zweiten freigegeben. Notwendig dafür ist eine zweite Emailadresse.
 
