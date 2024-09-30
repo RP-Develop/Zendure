@@ -25,7 +25,7 @@ use JSON;
 use Data::Dumper;
 use MIME::Base64;
 
-use constant VERSION => "Zendure Connect v0.0.1";
+use constant VERSION => "Zendure Connect v0.0.2";
 
 my %server = (
 	global => "v2",
