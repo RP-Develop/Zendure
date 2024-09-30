@@ -20,13 +20,13 @@ Ein zweiter Zendure Account ist notwendig. Im Hauptaccount wird der Zugriff für
 Die App mit dem zweiten Account kann nicht ohne weiteres benutzt werden. Erfolgt dies trotzdem, kommen beide Anmeldungen (Fhem + Zendure 2. Account) in Konflikt und ggf. wird der Token ungültig.
 
 ### Fhem  - ZendureUtils.pm
-`define \<name\> MQTT2_CLIENT \<name\>`
+`define <name> MQTT2_CLIENT <name>`
 
-`attr \<name\> username Username`
+`attr <name> username Username`
 
-`attr \<name\> connectFn {use ZendureUtils;;Zendure_connect($NAME,"global",1)}`
+`attr <name> connectFn {use ZendureUtils;;Zendure_connect($NAME,"global",1)}`
 
-`set \<name\> password Password`
+`set <name> password Password`
 
 Ein MQTT2_CLIENT wird normalerweise mit HOST:Port definiert. In diesem Falle nicht. Es muss aber mindestens ein Parameter angegeben werden, der dann in der DEF steht. Hier kann man den \<name\> benutzen. 
 
