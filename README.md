@@ -11,7 +11,7 @@ Mit diesem Fhem Modul können die Daten für ein Zendure Login erzeugt werden. M
 
 **update**
 
-update add https://raw.githubusercontent.com/RP-Develop/Zendure/main/controls_Zendure.txt
+`update add https://raw.githubusercontent.com/RP-Develop/Zendure/main/controls_Zendure.txt`
 
 ### Voraussetzung:
 Ein zweiter Zendure Account ist notwendig. Im Hauptaccount wird der Zugriff für den Zweiten freigegeben. Notwendig dafür ist eine zweite Emailadresse.
