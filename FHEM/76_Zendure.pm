@@ -9,6 +9,8 @@ use JSON;
 use Data::Dumper;
 use MIME::Base64;
 
+use constant VERSION 			=> "v0.0.2";
+
 my %server = (
 	global => "v2",
 	Global => "v2",
@@ -32,15 +34,16 @@ sub Zendure_Define($$) {
 	my ($hash, $def) = @_;
 	my @args = split("[ \t][ \t]*", $def);
 
-	return "Usage: define <name> Zendure <user> <password>" if (int(@args) != 5);
+	return "Usage: define <name> Zendure <user> <password> <server>" if (int(@args) != 5);
 
 	my $name		= $args[0];
-	my $user 		= $args[2];
-	my $password	= $args[3];
+	my $username	= Zendure_encrypt($args[2]);
+	my $password	= Zendure_encrypt($args[3]);
 	$hash->{server}	= $server{$args[4]};
 
-	$hash->{VERSION}			= "v0.0.1";
-	$hash->{helper}{user} 		= $user;
+	$hash->{VERSION}			= VERSION;
+	$hash->{DEF} = "$username $password $hash->{server}";
+	$hash->{helper}{username}	= $username;
 	$hash->{helper}{password} 	= $password ;
 	$hash->{NAME}				= $name;
 	$hash->{STATE}				= 'initialized';
@@ -75,14 +78,14 @@ sub Zendure_getAccessToken{
 	
 	my $url = "https://app.zendure.tech/".$hash->{server}."/auth/app/token";
 
-	my $user	= $hash->{helper}{user};
-	my $password	= $hash->{helper}{password}; 	
+	my $username	= Zendure_decrypt($hash->{helper}{username});
+	my $password	= Zendure_decrypt($hash->{helper}{password});
 	
-	my $auth = "Basic ".encode_base64("$user:$password", ''); # '' verhindert ein NewLine
+	my $auth = "Basic ".encode_base64("$username:$password", ''); # '' verhindert ein NewLine
 
 	my $body = {
 		password	=> $password,
-		account		=> $user,
+		account		=> $username,
 		appId		=> '121c83f761305d6cf7b',
 		appType		=> 'iOS',
 		grantType	=> 'password',
@@ -300,7 +303,7 @@ sub Zendure_Get {
 	Log3 $name, 5, $name.": <Get> called for $name : msg = $opt";
 
 	my $dump;
-	my $usage = "Unknown argument $opt, choose one of AccessToken:noArg DeviceList:noArg ConfigProposal:noArg";
+	my $usage = "Unknown argument $opt, choose one of AccessToken:noArg DeviceList:noArg ConfigProposal:noArg Account:noArg";
 	
 	if ($opt eq "AccessToken"){
 		if(defined($hash->{helper}{auth})){
@@ -326,10 +329,33 @@ sub Zendure_Get {
 		}
 		return "No data available: $opt";
 	}
+	elsif($opt eq "Account"){
+		my $username = $hash->{helper}{username};
+		my $password = $hash->{helper}{password};
+
+		return 'no username set' if( !$username );
+		return 'no password set' if( !$password );
+
+		$username = Zendure_decrypt( $username );
+		$password = Zendure_decrypt( $password );
+
+		return "username: $username\npassword: $password";
+	}
 	elsif($opt eq "ConfigProposal"){
 		if(defined($hash->{helper}{auth}) && defined($hash->{helper}{devices})){
 			if((%{$hash->{helper}{auth}}) && (%{$hash->{helper}{devices}})){
 				my $text = "Config Proposal:\n";
+				$text .= "\n";
+				$text .= "Fhem MQTT automatic configuration with loaded ZendureUtil.pm\n";
+				$text .= "\n";
+				$text .= "define &lt\;name&gt\; MQTT2_CLIENT &lt\;name&gt\;\n";
+				$text .= "attr &lt\;name&gt\; username ".Zendure_decrypt($hash->{helper}{username})."\n";;
+				$text .= "attr &lt\;name&gt\; connectFn \{use ZendureUtils;;Zendure_connect(\$NAME,".'"global"'.",1)\‚}\n";
+				$text .= "set &lt\;name&gt\; password ".Zendure_decrypt($hash->{helper}{password})."\n";
+				$text .= "\n";
+				$text .= "\n";
+				$text .= "\n";
+				$text .= "Fhem MQTT own configuration:\n";
 				$text .= "\n";
 				$text .= "MQTT2_CLIENT\n";
 				$text .= "\n";
@@ -365,7 +391,7 @@ sub Zendure_Get {
 				$text .= "\n";
 				$text .= "\n";
 				$text .= "\n";
-				$text .= "Mosquitto Bridge configuration\n";
+				$text .= "Mosquitto Bridge configuration:\n";
 				$text .= "\n";
 				$text .= "connection Zendure_Global\n";
 				$text .= "remote_username $hash->{helper}{iotUserName}\n";
@@ -409,6 +435,42 @@ sub Zendure_convertBool {
 
 	&_convert_bools;
 
+}
+
+# Password Crypt ###############################################################
+
+sub Zendure_encrypt {
+  	my ($decoded) = @_;
+  	my $key = getUniqueId();
+  	my $encoded;
+
+  	return $decoded if( $decoded =~ /crypt:/ );
+
+  	for my $char (split //, $decoded) {
+    	my $encode = chop($key);
+    	$encoded .= sprintf("%.2x",ord($char)^ord($encode));
+    	$key = $encode.$key;
+  	}
+
+  	return 'crypt:'.$encoded;
+}
+
+sub Zendure_decrypt {
+  	my ($encoded) = @_;
+  	my $key = getUniqueId();
+  	my $decoded;
+
+  	return $encoded if( $encoded !~ /crypt:/ );
+  
+  	$encoded = $1 if( $encoded =~ /crypt:(.*)/ );
+
+  	for my $char (map { pack('C', hex($_)) } ($encoded =~ /(..)/g)) {
+    	my $decode = chop($key);
+    	$decoded .= chr(ord($char)^ord($decode));
+    	$key = $decode.$key;
+  	}
+
+  	return $decoded;
 }
 
 

@@ -25,6 +25,8 @@ use JSON;
 use Data::Dumper;
 use MIME::Base64;
 
+use constant VERSION => "Zendure Connect v0.0.1";
+
 my %server = (
 	global => "v2",
 	Global => "v2",
@@ -50,7 +52,7 @@ sub Zendure_connect($$;$$) {
 	return Log3 $name, 1, $name.": <Zendure_connect> no such definition" if(!$hash);
 	return Log3 $name, 1, $name.": <Zendure_connect> unknown server type '$type'" if(!$server{$type});
 	
-	$hash->{version} = "Zendure Connect v0.0.1";
+	$hash->{version} = VERSION;
 	$hash->{server} = $server{$type};
 	$hash->{autocreate} = $autocreate ? 1 : 0;
 	

@@ -42,7 +42,7 @@ Die Parameter im Ausdruck `Zendure_connect($NAME,"global",1)` haben folgende Fun
 ### Fhem  - 76_Zendure.pm
 `define <name> Zendure <username> <password> <server>`
 
-Username und Password sind die vom zweiten Zendure Account.
+Username und Password sind die vom zweiten Zendure Account. Werden anschließend verschlüsselt im DEF angezeigt.
 
 Parameter "server" - bezieht sich auf den Zendure Server. Es gibt einen 'Global' und einen 'EU'. Als Parameterwert kann ' global | Global | v2 ' für den Globalen und ' eu | EU ' für den EU Server verwendet werden. Welcher Server benutzt wird, wird bei der Erstanmeldung festgelegt. Beachte: Ein Wechsel löscht alle gespeicherten Daten.
 
@@ -63,6 +63,10 @@ Zeigt die Antwort der DeviceList Abfrage.
 `get <name> ConfigProposal`
 
 Zeigt ein vollständig ausgefülltes Set zur Konfiguration eines MQTT2_CIENT und MQTT2_DEVICE, wie auch ein Vorschlag zur Konfiguration einer Bridge im Mosquitto.
+
+`get <name> Account`
+
+Zeigt die verschlüsselten Zugansdaten an.
 
 ### Quellen
 Fhem - LandroidUtils.pm
