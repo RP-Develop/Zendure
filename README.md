@@ -32,7 +32,7 @@ Ein MQTT2_CLIENT wird normalerweise mit HOST:Port definiert. In diesem Falle nic
 
 Username und Password sind vom zweiten Zendure Account. 
 
-Die Parameter im Ausdruck **Zendure_connect($NAME,"global",1)** haben folgende Funktion:
+Die Parameter im Ausdruck `*Zendure_connect($NAME,"global",1)` haben folgende Funktion:
 
 2. Parameter "global" - bezieht sich auf den Zendure Server. Es gibt einen 'Global' und einen 'EU'. Als Parameterwert kann ' global | Global | v2 ' für den Globalen und ' eu | EU ' für den EU Server verwendet werden. Welcher Server benutzt wird, wird bei der Erstanmeldung festgelegt. Beachte: Ein Wechsel löscht alle gespeicherten Daten.
 
