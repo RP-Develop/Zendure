@@ -314,7 +314,7 @@ sub Zendure_connect_configDevice {
 		$deviceKey = $hash->{helper}{devices}{data}[$index]{deviceKey};
 		
 		$readingList  = ".*/".$productKey."/".$deviceKey."/properties/report:.* { json2nameValue(\$EVENT, '', \$JSONMAP), undef, 'packData' }\n";
-		$readingList  = ".*/".$productKey."/".$deviceKey."/properties/report:.* { hashKeyRename(json2nameValue(\$EVENT,undef,undef,'packData'),'packData_(.*)_sn:(.*)','(\\d+)') }\n";
+		$readingList .= ".*/".$productKey."/".$deviceKey."/properties/report:.* { hashKeyRename(json2nameValue(\$EVENT,undef,undef,'packData'),'packData_(.*)_sn:(.*)','(\\d+)') }\n";
 		$readingList .= ".*iot/".$productKey."/".$deviceKey."/properties/read:.* { json2nameValue(\$EVENT, 'iot_read_', \$JSONMAP) }\n";
 		$readingList .= ".*iot/".$productKey."/".$deviceKey."/properties/write:.* { json2nameValue(\$EVENT, 'iot_write_', \$JSONMAP) }";
 
