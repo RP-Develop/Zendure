@@ -25,7 +25,7 @@ use JSON;
 use Data::Dumper;
 use MIME::Base64;
 
-use constant VERSION => "Zendure Connect v0.0.3";
+use constant VERSION => "Zendure Connect v0.0.4";
 
 my %server = (
 	global => "v2",
@@ -295,6 +295,7 @@ sub Zendure_connect_configDevice {
 	
 	my $readingList;
 	my $setList;
+	my $jsonMap;
 	
 	return unless($hash->{autocreate});
 	
@@ -324,6 +325,46 @@ sub Zendure_connect_configDevice {
 		$setList .= "autoRecover:0,1 iot/".$productKey."/".$deviceKey.'/properties/write {"properties":{"autoRecover"'.":\$EVTPART1}} \n";
 		$setList .= "Buzzer:0,1 iot/".$productKey."/".$deviceKey.'/properties/write {"properties":{"buzzerSwitch"'.":\$EVTPART1}} \n";
 		$setList .= "minSoc:100,200,300,400,500 iot/".$productKey."/".$deviceKey.'/properties/write {"properties":{"minSoc"'.":\$EVTPART1}}";
+		
+		$jsonMap  = "properties_acMode:acMode \n";
+		$jsonMap .= "properties_autoModel:autoModel \n";
+		$jsonMap .= "properties_autoRecover:autoRecover \n";
+		$jsonMap .= "properties_blueOta:blueOta \n";
+		$jsonMap .= "properties_buzzerSwitch:buzzerSwitch \n";
+		$jsonMap .= "properties_electricLevel:electricLevel \n";
+		$jsonMap .= "properties_gridPower:gridPower \n";
+		$jsonMap .= "properties_heatState:heatState \n";
+		$jsonMap .= "properties_hubState:hubState \n";
+		$jsonMap .= "properties_inputLimit:inputLimit \n";
+		$jsonMap .= "properties_inputMode:inputMode \n";
+		$jsonMap .= "properties_inverseMaxPower:inverseMaxPower \n";
+		$jsonMap .= "properties_masterSoftVersion:masterSoftVersion \n";
+		$jsonMap .= "properties_masterSwitch:masterSwitch \n";
+		$jsonMap .= "properties_masterhaerVersion:masterhaerVersion \n";
+		$jsonMap .= "properties_minSoc:minSoc \n";
+		$jsonMap .= "properties_outputHomePower:outputHomePower \n";
+		$jsonMap .= "properties_outputHomePowerCycle:outputHomePowerCycle \n";
+		$jsonMap .= "properties_outputLimit:outputLimit \n";
+		$jsonMap .= "properties_outputPackPower:outputPackPower \n";
+		$jsonMap .= "properties_outputPackPowerCycle:outputPackPowerCycle \n";
+		$jsonMap .= "properties_packInputPower:packInputPower \n";
+		$jsonMap .= "properties_packInputPowerCycle:packInputPowerCycle \n";
+		$jsonMap .= "properties_packNum:packNum \n";
+		$jsonMap .= "properties_packState:packState \n";
+		$jsonMap .= "properties_pass:pass \n";
+		$jsonMap .= "properties_passMode:passMode \n";
+		$jsonMap .= "properties_pvBrand:pvBrand \n";
+		$jsonMap .= "properties_remainInputTime:remainInputTime \n";
+		$jsonMap .= "properties_remainOutTime:remainOutTime \n";
+		$jsonMap .= "properties_smartMode:smartMode \n";
+		$jsonMap .= "properties_smartPower:smartPower \n";
+		$jsonMap .= "properties_socSet:socSet \n";
+		$jsonMap .= "properties_solarInputPower:solarInputPower \n";
+		$jsonMap .= "properties_solarPower1:solarPower1 \n";
+		$jsonMap .= "properties_solarPower1Cycle:solarPower1Cycle \n";
+		$jsonMap .= "properties_solarPower2:solarPower2 \n";
+		$jsonMap .= "properties_solarPower2Cycle:solarPower2Cycle \n";
+		$jsonMap .= "properties_wifiState:wifiState \n";
 }
 
 
@@ -365,6 +406,7 @@ sub Zendure_connect_configDevice {
 		
 		CommandAttr(undef,"$uniqueDeviceName alias $alias");
 		CommandAttr(undef,"$uniqueDeviceName IODev $name");
+		CommandAttr(undef,"$uniqueDeviceName jsonMap $jsonMap");
 		CommandAttr(undef,"$uniqueDeviceName readingList $readingList");
 		CommandAttr(undef,"$uniqueDeviceName setList $setList") if(defined($setList));
 		CommandAttr(undef,"$uniqueDeviceName stateFormat &nbsp");

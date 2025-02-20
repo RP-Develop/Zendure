@@ -9,7 +9,7 @@ use JSON;
 use Data::Dumper;
 use MIME::Base64;
 
-use constant VERSION 			=> "v0.0.3";
+use constant VERSION 			=> "v0.0.4";
 
 my %server = (
 	global => "v2",
