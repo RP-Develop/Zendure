@@ -25,7 +25,7 @@ use JSON;
 use Data::Dumper;
 use MIME::Base64;
 
-use constant VERSION => "Zendure Connect v0.0.2";
+use constant VERSION => "Zendure Connect v0.0.3";
 
 my %server = (
 	global => "v2",
@@ -313,15 +313,17 @@ sub Zendure_connect_configDevice {
 		$productKey = $hash->{helper}{devices}{data}[$index]{productKey};
 		$deviceKey = $hash->{helper}{devices}{data}[$index]{deviceKey};
 		
-		$readingList  = ".*/".$productKey."/".$deviceKey."/properties/report:.* { json2nameValue(\$EVENT, '', \$JSONMAP) }\n";
+		$readingList  = ".*/".$productKey."/".$deviceKey."/properties/report:.* { json2nameValue(\$EVENT, '', \$JSONMAP), undef, 'packData' }\n";
+		$readingList  = ".*/".$productKey."/".$deviceKey."/properties/report:.* { hashKeyRename(json2nameValue($EVENT,undef,undef,'packData'),'packData_(.*)_sn:(.*)','(\\d+)') }\n";
 		$readingList .= ".*iot/".$productKey."/".$deviceKey."/properties/read:.* { json2nameValue(\$EVENT, 'iot_read_', \$JSONMAP) }\n";
 		$readingList .= ".*iot/".$productKey."/".$deviceKey."/properties/write:.* { json2nameValue(\$EVENT, 'iot_write_', \$JSONMAP) }";
 
-		$setList  = "Output:100,200,300,400,500,600 iot/".$productKey."/".$deviceKey.'/properties/write {"properties":{"outputLimit"'.":\$EVTPART1}} \n";
+		$setList  = "Output:30,60,90,100,200,300,400,500,600,700,800 iot/".$productKey."/".$deviceKey.'/properties/write {"properties":{"outputLimit"'.":\$EVTPART1}} \n";
 		$setList .= "Update:noArg iot/".$productKey."/".$deviceKey.'/properties/read {"properties":["getAll"]}'." \n";
 		$setList .= "Bypass:0,1,2 iot/".$productKey."/".$deviceKey.'/properties/write {"properties":{"passMode"'.":\$EVTPART1}} \n";
-		$setList .= "autoRecover:0,1 iot/".$productKey."/".$deviceKey.'/properties/write {"properties":{"autoRecover"'.":\$EVTPART1}}";
-
+		$setList .= "autoRecover:0,1 iot/".$productKey."/".$deviceKey.'/properties/write {"properties":{"autoRecover"'.":\$EVTPART1}} \n";
+		$setList .= "Buzzer:0,1 iot/".$productKey."/".$deviceKey.'/properties/write {"properties":{"buzzerSwitch"'.":\$EVTPART1}} \n";
+		$setList .= "minSoc:100,200,300,400,500 iot/".$productKey."/".$deviceKey.'/properties/write {"properties":{"minSoc"'.":\$EVTPART1}}";
 }
 
 
