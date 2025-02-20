@@ -373,7 +373,7 @@ sub Zendure_Get {
 				$text .= "attr &lt\;name&gt\; IODev &lt\;name of MQTT2_CLIENT&gt\; \n";
 				$text .= "attr &lt\;name&gt\; readingList &lt\;follow lines&gt\; \n";
 				$text .= ".*/".$hash->{helper}{productKey}."/".$hash->{helper}{deviceKey}."/properties/report:.* { json2nameValue(\$EVENT, 'properties_report_', \$JSONMAP, undef, 'packData') }\n";
-				$text .= ".*/".$hash->{helper}{productKey}."/".$hash->{helper}{deviceKey}."/properties/report:.* { ashKeyRename(json2nameValue($EVENT,undef,undef,'packData'),'packData_(.*)_sn:(.*)','(\\d+)') }\n";
+				$text .= ".*/".$hash->{helper}{productKey}."/".$hash->{helper}{deviceKey}."/properties/report:.* { ashKeyRename(json2nameValue(\$EVENT,undef,undef,'packData'),'packData_(.*)_sn:(.*)','(\\d+)') }\n";
 				$text .= ".*/".$hash->{helper}{productKey}."/".$hash->{helper}{deviceKey}."/event/device:.* { json2nameValue(\$EVENT, 'event_device_', \$JSONMAP) }\n";
 				$text .= ".*/".$hash->{helper}{productKey}."/".$hash->{helper}{deviceKey}."/event/error:.* { json2nameValue(\$EVENT, 'event_error_', \$JSONMAP) }\n";
 				$text .= ".*/".$hash->{helper}{productKey}."/".$hash->{helper}{deviceKey}."/properties/read/reply:.* { json2nameValue(\$EVENT, 'properties_read_reply_', \$JSONMAP) }\n";
