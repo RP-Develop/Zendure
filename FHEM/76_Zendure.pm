@@ -8,8 +8,13 @@ use HttpUtils;
 use JSON;
 use Data::Dumper;
 use MIME::Base64;
+use Storable qw( dclone );
 
-use constant VERSION 			=> "v0.0.4";
+use constant VERSION 			=> "v0.0.5";
+
+use constant APPVERSION			=> "4.3.1";
+use constant USERAGENT			=> "Zendure/4.3.1 (iPhone; iOS 14.4.2; Scale/3.00)";
+
 
 my %server = (
 	global => "v2",
@@ -19,17 +24,18 @@ my %server = (
 	EU => "eu"
 );
 
-
+# Init #########################################################################
 sub Zendure_Initialize($) {
 	my ($hash) = @_;
 
 	# Definieren von FHEM-Funktionen
-	$hash->{DefFn}	= "Zendure_Define";
-	$hash->{SetFn}	= "Zendure_Set";
-	$hash->{GetFn}	= "Zendure_Get";
-}
+	$hash->{DefFn}		= "Zendure_Define";
+	$hash->{SetFn}		= "Zendure_Set";
+	$hash->{GetFn}		= "Zendure_Get";
+	$hash->{AttrFn}		= "Zendure_Attr";
+	$hash->{AttrList}	= "updateInterval expert:0,1 ".$readingFnAttributes;}
 
-# Definition des Geräts in FHEM
+# Definition des Geräts in FHEM ################################################
 sub Zendure_Define($$) {
 	my ($hash, $def) = @_;
 	my @args = split("[ \t][ \t]*", $def);
@@ -53,25 +59,27 @@ sub Zendure_Define($$) {
 	return undef;
 }
 
-
+# Set ##########################################################################
 sub Zendure_Set($$@) {
 	my ($hash, $name, $cmd, @args) = @_;
 
-	my $list = "Login:noArg";
+	my $list = "Login:noArg Update:noArg";
 
 	if ($cmd eq "Login") {
-
-		Zendure_getAccessToken($hash);
-
 		readingsSingleUpdate($hash, 'state', $cmd, 1 );
-
+		Zendure_getAccessToken($hash);
+		return undef;
+	}
+	elsif ($cmd eq "Update") {
+		readingsSingleUpdate($hash, 'state', $cmd, 1 );
+		Zendure_getDeviceList($hash);
 		return undef;
 	}
 
 	return "Unknown argument $cmd, choose one of $list";
 }
 
-
+# Token holen ##################################################################
 sub Zendure_getAccessToken{
 	my ($hash) = @_;
 	my $name = $hash->{NAME};
@@ -98,8 +106,8 @@ sub Zendure_getAccessToken{
 	my $header    = {
 		"Content-Type"		=> 'application/json',
 		"Accept-Language"	=> 'de-DE',
-		"appVersion"		=> '4.3.1',
-		"User-Agent"		=> 'Zendure/4.3.1 (iPhone; iOS 14.4.2; Scale/3.00)',
+		"appVersion"		=> APPVERSION,
+		"User-Agent"		=> USERAGENT,
 		"Accept"			=> '*/*',
 		"Authorization"		=> $auth,
 		"Blade-Auth"		=> 'bearer (null)',
@@ -126,10 +134,21 @@ sub Zendure_getAccessToken{
 	return undef;
 }
 
-
+# Device List holen ############################################################
 sub Zendure_getDeviceList{
 	my ($hash) = @_;
 	my $name = $hash->{NAME};
+	
+	my $bladeAuth;
+	
+	if(defined($hash->{helper}{accessToken})){
+		$bladeAuth = "bearer ".$hash->{helper}{accessToken};
+	}
+	else{
+		readingsSingleUpdate($hash, 'state', 'No valid access token!', 1 );
+		Log3 $name, 1, $name.": no valid access token!";
+		return undef;
+	}
 	
 	my $url = "https://app.zendure.tech/".$hash->{server}."/productModule/device/queryDeviceListByConsumerId";
 
@@ -138,13 +157,11 @@ sub Zendure_getDeviceList{
 	# HTTP POST Anfrage senden
 	my $json_body = encode_json($body);
 	
-	my $bladeAuth = "bearer ".$hash->{helper}{accessToken};
-	
 	my $header    = {
 		"Content-Type"		=> 'application/json',
 		"Accept-Language"	=> 'de-DE',
-		"appVersion"		=> '4.3.1',
-		"User-Agent"		=> 'Zendure/4.3.1 (iPhone; iOS 14.4.2; Scale/3.00)',
+		"appVersion"		=> APPVERSION, 
+		"User-Agent"		=> USERAGENT,
 		"Accept"			=> '*/*',
 		"Authorization"		=> "Basic Q29uc3VtZXJBcHA6NX4qUmRuTnJATWg0WjEyMw==",
 		"Blade-Auth"		=> $bladeAuth
@@ -171,16 +188,262 @@ sub Zendure_getDeviceList{
 	return undef;
 }
 
+# Update Daten holen ###########################################################
+sub Zendure_getUpdate{
+	my ($hash) = @_;
+	my $name = $hash->{NAME};
+	
+	if(defined($hash->{helper}{devices}{data})){
+		foreach my $devices(@{$hash->{helper}{devices}{data}}){
+			# Abfrage mit Total 
+			Zendure_getEnergy($hash,$devices->{id},1);
+			Zendure_getElectric($hash,$devices->{id},1);
+			# Abfrage Heute
+			Zendure_getEnergy($hash,$devices->{id});
+			Zendure_getElectric($hash,$devices->{id});
+			Zendure_getDetails($hash,$devices->{id});
+		}
+	}
+	
+	InternalTimer(gettimeofday() + (AttrVal($name,"updateInterval",60) * 60), "Zendure_getUpdate", $hash) if(AttrVal($name,"updateInterval",0));	
+	
+	return undef;
+}
+
+# Detail Daten holen ###########################################################
+sub Zendure_getDetails{
+	my ($hash, $id) = @_;
+	my $name = $hash->{NAME};
+
+	my $bladeAuth;
+
+	if(defined($hash->{helper}{accessToken})){
+		$bladeAuth = "bearer ".$hash->{helper}{accessToken};
+	}
+	else{
+		readingsSingleUpdate($hash, 'state', 'No valid access token!', 1 );
+		Log3 $name, 1, $name.": no valid access token!";
+		return undef;
+	}
+	
+	my $url = $hash->{helper}{serverNodeUrl}."/device/solarFlow/detail";
+	
+	# bekannte Links ###########################################################
+	# https://app.zendure.tech/as/tdengine/device/solarFlow/electric 
+	# https://app.zendure.tech/as/tdengine/device/solarFlow/energy
+	# https://app.zendure.tech/as/platform/h5/time
+	# https://app.zendure.tech/as/device/solarFlow/detail
+
+	my $body = {
+		"deviceId" => $id
+	};
+
+	# HTTP POST Anfrage senden
+	my $json_body = encode_json($body);
+	
+	my $header    = {
+		"Content-Type"		=> 'application/json',
+		"Accept-Language"	=> 'de-DE',
+		"appVersion"		=> APPVERSION,
+		"User-Agent"		=> USERAGENT,
+		"Accept"			=> '*/*',
+		"Blade-Auth"		=> $bladeAuth
+	};
+
+	my $param = {
+		"url"			=> $url,
+		"method"		=> "POST",
+		"timeout"		=> 10,
+		"header"		=> $header, 
+		"data"			=> $json_body, 
+		"hash"			=> $hash,
+		"command"		=> "getDetails",
+		"id"			=> $id,
+		"callback"		=> \&Zendure_parseRequestAnswer,
+		"loglevel"		=> AttrVal($name, "verbose", 4)
+	};
+
+	Log3 $name, 5, $name.": <Request> URL:".$url." send:\n".
+		"## Header ############\n".Dumper($param->{header})."\n".
+		"## Body ##############\n".$json_body."\n";
+
+	HttpUtils_NonblockingGet( $param );
+
+	return undef;
+}
+
+# Energy Daten holen ###########################################################
+sub Zendure_getEnergy{
+	my ($hash, $id, $period) = @_;
+	my $name = $hash->{NAME};
+
+	my $bladeAuth;
+	
+	$period = 0 if(!defined($period));
+
+	if(defined($hash->{helper}{accessToken})){
+		$bladeAuth = "bearer ".$hash->{helper}{accessToken};
+	}
+	else{
+		readingsSingleUpdate($hash, 'state', 'No valid access token!', 1 );
+		Log3 $name, 1, $name.": no valid access token!";
+		return undef;
+	}
+	
+	my $url = $hash->{helper}{serverNodeUrl}."/tdengine/device/solarFlow/energy";
+
+	# bekannte Links ###########################################################
+	# https://app.zendure.tech/as/tdengine/device/solarFlow/electric 
+	# https://app.zendure.tech/as/tdengine/device/solarFlow/energy
+	# https://app.zendure.tech/as/platform/h5/time
+
+	# nur Daten von heute
+	my $today = sprintf( "%04d-%02d-%02d",((localtime)[5] +1900),((localtime)[4] +1),(localtime)[3]);
+	my $type = 0;
+	
+	# type mögliche Werte "",0,1,2,3,4
+	# "" ganzer Zeitrauf seit IBN
+	# 0 = Tag
+	# 1 = Woche				?
+	# 2 = Monat				?
+	# 3 = Jahr				?
+	# 4 = Benutzerdefiniert	?
+	if($period == 1){
+		# ganzer Zeitraum
+		$today = "";
+		$type = "";
+	}
+	
+	my $body = {
+		"aceId" => "",
+		"deviceId" => $id, 
+		"endDate" => $today,
+		"zone" => "Europe\/Berlin",
+		"type" => $type,
+		"beginDate" => $today
+	};
+
+	# HTTP POST Anfrage senden
+	my $json_body = encode_json($body);
+	
+	my $header    = {
+		"Content-Type"		=> 'application/json',
+		"Accept-Language"	=> 'de-DE',
+		"appVersion"		=> APPVERSION,
+		"User-Agent"		=> USERAGENT,
+		"Accept"			=> '*/*',
+		"Blade-Auth"		=> $bladeAuth
+	};
+
+	my $param = {
+		"url"			=> $url,
+		"method"		=> "POST",
+		"timeout"		=> 10,
+		"header"		=> $header, 
+		"data"			=> $json_body, 
+		"hash"			=> $hash,
+		"command"		=> "getEnergy",
+		"id"			=> $id,
+		"period"		=> $period,
+		"callback"		=> \&Zendure_parseRequestAnswer,
+		"loglevel"		=> AttrVal($name, "verbose", 4)
+	};
+
+	Log3 $name, 5, $name.": <Request> URL:".$url." send:\n".
+		"## Header ############\n".Dumper($param->{header})."\n".
+		"## Body ##############\n".$json_body."\n";
+
+	HttpUtils_NonblockingGet( $param );
+
+	return undef;
+}
+
+# Electric Daten holen #########################################################
+sub Zendure_getElectric{
+	my ($hash, $id, $period) = @_;
+	my $name = $hash->{NAME};
+
+	my $bladeAuth;
+
+	$period = 0 if(!defined($period));
+
+	if(defined($hash->{helper}{accessToken})){
+		$bladeAuth = "bearer ".$hash->{helper}{accessToken};
+	}
+	else{
+		readingsSingleUpdate($hash, 'state', 'No valid access token!', 1 );
+		Log3 $name, 1, $name.": no valid access token!";
+		return undef;
+	}
+	
+	my $url = $hash->{helper}{serverNodeUrl}."/tdengine/device/solarFlow/electric";
+	
+	# bekannte Links ###########################################################
+	# https://app.zendure.tech/as/tdengine/device/solarFlow/electric 
+	# https://app.zendure.tech/as/tdengine/device/solarFlow/energy
+	# https://app.zendure.tech/as/platform/h5/time
+
+	# nur Daten von heute
+	my $today = sprintf( "%04d-%02d-%02d",((localtime)[5] +1900),((localtime)[4] +1),(localtime)[3]);
+	my $type = 0;
+	
+	if($period == 1){
+		# ganzer Zeitraum
+		$today = "";
+		$type = "";
+	}
+
+	my $body = {
+		"aceId" => "",
+		"deviceId" => $id,
+		"endDate" => $today,
+		"zone" => "Europe\/Berlin",
+		"type" => $type,
+		"beginDate" => $today
+	};
+
+	# HTTP POST Anfrage senden
+	my $json_body = encode_json($body);
+	
+	my $header    = {
+		"Content-Type"		=> 'application/json',
+		"Accept-Language"	=> 'de-DE',
+		"appVersion"		=> APPVERSION,
+		"User-Agent"		=> USERAGENT,
+		"Accept"			=> '*/*',
+		"Blade-Auth"		=> $bladeAuth
+	};
+
+	my $param = {
+		"url"			=> $url,
+		"method"		=> "POST",
+		"timeout"		=> 10,
+		"header"		=> $header, 
+		"data"			=> $json_body, 
+		"hash"			=> $hash,
+		"command"		=> "getElectric",
+		"id"			=> $id,
+		"period"		=> $period,
+		"callback"		=> \&Zendure_parseRequestAnswer,
+		"loglevel"		=> AttrVal($name, "verbose", 4)
+	};
+
+	Log3 $name, 5, $name.": <Request> URL:".$url." send:\n".
+		"## Header ############\n".Dumper($param->{header})."\n".
+		"## Body ##############\n".$json_body."\n";
+
+	HttpUtils_NonblockingGet( $param );
+
+	return undef;
+}
+
+# Antworten parsen und Readings anlegen ########################################
 sub Zendure_parseRequestAnswer {
 	my ($param, $err, $data) = @_;
 	my $hash = $param->{hash};
 	my $name = $hash->{NAME};
 
 	my $responseData;
-
-	my $error	= "not defined";
-	my $message	= "not defined";
-	my $statusCode	= "not defined";
 
 	if($err ne ""){
 		Log3 $name, 1, $name.": error while HTTP requesting ".$param->{url}." - $err"; 
@@ -194,9 +457,13 @@ sub Zendure_parseRequestAnswer {
 			"## Header ############\n".$param->{httpheader}."\n";
   
 		# $param->{code} auswerten?
-		unless (($param->{code} == 200) || ($param->{code} == 400)){
-			Log3 $name, 1, $name.": error while HTTP requesting ".$param->{url}." - code: ".$param->{code}; 
-			readingsSingleUpdate($hash, 'state', 'error', 1 );
+		unless ($param->{code} == 200){
+			Log3 $name, 1, $name.": error while HTTP requesting ".$param->{url}." returned data:\n".
+			"## HTTP-Statuscode ###\n".$param->{code} ."\n".
+			"## Data ##############\n".$data."\n".
+			"## Header ############\n".$param->{httpheader}."\n";
+ 
+			readingsSingleUpdate($hash, 'state', 'error - code '.$param->{code}, 1 );
 			return undef;
 		}
 
@@ -220,28 +487,35 @@ sub Zendure_parseRequestAnswer {
 				readingsSingleUpdate($hash, 'state', 'error', 1 );
 				return undef;
 			}
-		}                                                       
+		}
 
-		# bei code 400 kommt evtl. erweiterter Hinweise im JSON
-		if ($param->{code} == 400){
-			if($responseData->{msg}){
-				Log3 $name, 1, $name.": <Zendure_connect> error while HTTP requesting ".$param->{url}." - code: ".$param->{code}." - msg: ".$responseData->{msg}; 
+		# bei code 200 kommt evtl. erweiterter Hinweise im JSON bei Error (z.B. wenn Token nicht mehr gültig)
+		if ($param->{code} == 200){
+			if($responseData->{code}){
+				if(($responseData->{code} == 401) || ($responseData->{code} == 400)){
+					Log3 $name, 1, $name.": error while HTTP requesting ".$param->{url}." - code: ".$param->{code}." - msg: ".$responseData->{msg};
+					readingsSingleUpdate($hash, 'state', 'error - '.$responseData->{msg}, 1 );
+					return undef;
+ 				}
 			}
-			else{
-				Log3 $name, 1, $name.": <Zendure_connect> error while HTTP requesting ".$param->{url}." - code: ".$param->{code}; 
-			}
-			readingsSingleUpdate($hash, 'state', 'error', 1 );
-			return undef;
-		}		                                                      
+		}
 
 		if($param->{command} eq "getAccessToken") { 
 			$hash->{helper}{auth} = $responseData;
+			
+			# für GET showData
+			$hash->{helper}{get}{auth} = dclone($responseData);
+			
+			$hash->{serverNodeUrl} = $responseData->{data}{serverNodeUrl};
 
 			$hash->{helper}{accessToken} = $responseData->{data}{accessToken};
 			$hash->{helper}{userId} = $responseData->{data}{userId};
 			$hash->{helper}{iotUrl} = $responseData->{data}{iotUrl}.":1883";
 	 		$hash->{helper}{iotUserName} = $responseData->{data}{iotUserName};
 	 		$hash->{helper}{iotPassword} = decode_base64((($hash->{server} eq "v2") ? "b0sjUENneTZPWnhk" : "SDZzJGo5Q3ROYTBO"));
+	 		$hash->{helper}{serverNodeUrl} = $responseData->{data}{serverNodeUrl};
+	 		$hash->{helper}{serverNode} = $responseData->{data}{serverNode};
+	 		$hash->{helper}{zone} = $responseData->{data}{zone};
 
 			readingsBeginUpdate($hash); 	
 	 			readingsBulkUpdate($hash, "MQTT_accessToken", $hash->{helper}{accessToken});
@@ -259,32 +533,181 @@ sub Zendure_parseRequestAnswer {
 		}
 		elsif($param->{command} eq "getDeviceList"){
 			$hash->{helper}{devices} = $responseData;
+
+			# für GET showData
+			$hash->{helper}{get}{devices} = dclone($responseData);
 		
 			$hash->{devices} = scalar @{$responseData->{data}};
 			
+			# nur für ConfigProposal ersten Eintrag nehmen
 			$hash->{helper}{productKey} = $responseData->{data}[0]{productKey};
 			$hash->{helper}{deviceKey} = $responseData->{data}[0]{deviceKey};
+			$hash->{helper}{id} = $responseData->{data}[0]{id};
 			
-			$hash->{helper}{subscriptions} = "";
+			$hash->{helper}{subscriptions} = "/".$responseData->{data}[0]{productKey}."/".$responseData->{data}[0]{deviceKey}."/# iot/".$responseData->{data}[0]{productKey}."/".$responseData->{data}[0]{deviceKey}."/# \n";
+			####
 			
-			my $k = 0;
 			my $subscriptions = "";
-			for my $i (0 .. ($hash->{devices}-1)){
-				$subscriptions = "/".$responseData->{data}[$i]{productKey}."/".$responseData->{data}[$i]{deviceKey}."/# iot/".$responseData->{data}[$i]{productKey}."/".$responseData->{data}[$i]{deviceKey}."/#";
-				$hash->{helper}{subscriptions} .= $subscriptions." \n";
-				$k = $i + 1;
+			foreach my $devices(@{$hash->{helper}{devices}{data}}){
+				$subscriptions = "/".$devices->{productKey}."/".$devices->{deviceKey}."/# iot/".$devices->{productKey}."/".$devices->{deviceKey}."/#";
 				readingsBeginUpdate($hash); 	
-					readingsBulkUpdate($hash, "Device_".$k."_productKey", $responseData->{data}[$i]{productKey});
-					readingsBulkUpdate($hash, "Device_".$k."_deviceKey", $responseData->{data}[$i]{deviceKey});
-					readingsBulkUpdate($hash, "Device_".$k."_snNumber", $responseData->{data}[$i]{snNumber});
-					readingsBulkUpdate($hash, "Device_".$k."_productName", $responseData->{data}[$i]{productName});
-					readingsBulkUpdate($hash, "Device_".$k."_name", $responseData->{data}[$i]{name});
-					readingsBulkUpdate($hash, "Device_".$k."_subscriptions", $subscriptions);
+					readingsBulkUpdate($hash, "Device_".$devices->{id}."_productKey", $devices->{productKey});
+					readingsBulkUpdate($hash, "Device_".$devices->{id}."_deviceKey", $devices->{deviceKey});
+					readingsBulkUpdate($hash, "Device_".$devices->{id}."_snNumber", $devices->{snNumber});
+					readingsBulkUpdate($hash, "Device_".$devices->{id}."_productName", $devices->{productName});
+					readingsBulkUpdate($hash, "Device_".$devices->{id}."_name", $devices->{name});
+					readingsBulkUpdate($hash, "Device_".$devices->{id}."_id", $devices->{id});
+					readingsBulkUpdate($hash, "Device_".$devices->{id}."_productType", $devices->{productType});
+					readingsBulkUpdate($hash, "Device_".$devices->{id}."_subscriptions", $subscriptions);
 				readingsEndUpdate($hash, 1);
 			}
 			
 			readingsSingleUpdate($hash, 'state', 'Device List successful loaded!', 1 );
+			
+			# wenn OK dann Daten holen
+			Zendure_getUpdate($hash);
+		}
+		elsif($param->{command} eq "getElectric"){
+			foreach my $devices(@{$hash->{helper}{devices}{data}}){
+				if($devices->{id} eq $param->{id}){
+					# merge der Hashes damit {total} & {today} erhalten bleiben
+					@{$devices->{electric}}{ keys %$responseData } = values %$responseData;
+					
+					delete($devices->{electric}{data}{energyVos}); 	#Diagrammdaten gelöscht
+					delete($devices->{electric}{data}{data}); 		#Diagrammdaten gelöscht
 
+					if($param->{period} == 1){
+						$devices->{electric}{total} = dclone($devices->{electric}{data});
+					}
+					else{
+						$devices->{electric}{today} = dclone($devices->{electric}{data});
+					}
+
+			# productType = 8 	=> HUB 2000
+			# productType = 17 	=> Hyper 2000
+
+					if((($devices->{productType} != 8) && ($devices->{productType} != 17)) || (AttrVal($name,"expert",0))){
+						readingsBeginUpdate($hash); 	
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_electric_today_toHome", $devices->{electric}{today}{toHome});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_electric_today_bindDeviceInput", $devices->{electric}{today}{bindDeviceInput});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_electric_today_fromSolar", $devices->{electric}{today}{fromSolar});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_electric_today_outputToBindDevice", $devices->{electric}{today}{outputToBindDevice});
+
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_electric_total_toHome", $devices->{electric}{total}{toHome});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_electric_total_bindDeviceInput", $devices->{electric}{total}{bindDeviceInput});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_electric_total_fromSolar", $devices->{electric}{total}{fromSolar});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_electric_total_outputToBindDevice", $devices->{electric}{total}{outputToBindDevice});
+						readingsEndUpdate($hash, 1);
+					}
+					elsif(($devices->{productType} == 8) || ($devices->{productType} == 17)){
+						# keine relevanten Daten vorhanden
+					}
+				}
+			}
+			readingsSingleUpdate($hash, 'state', 'Electric data successful loaded!', 1 );
+		}
+		elsif($param->{command} eq "getEnergy"){
+			foreach my $devices(@{$hash->{helper}{devices}{data}}){
+				if($devices->{id} eq $param->{id}){
+					# merge der Hashes damit {total} & {today} erhalten bleiben
+					@{$devices->{energy}}{ keys %$responseData } = values %$responseData;
+
+					delete($devices->{energy}{data}{energyVos}); 	#Diagrammdaten gelöscht
+					delete($devices->{energy}{data}{data}); 		#Diagrammdaten gelöscht
+
+					if($param->{period} == 1){
+						$devices->{energy}{total} = dclone($devices->{energy}{data});
+					}
+					else{
+						$devices->{energy}{today} = dclone($devices->{energy}{data});
+					}
+
+			# productType = 8 	=> HUB 2000
+			# productType = 17 	=> Hyper 2000
+
+					if((($devices->{productType} != 8) && ($devices->{productType} != 17)) || (AttrVal($name,"expert",0))){
+						readingsBeginUpdate($hash); 	
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_today_batteryOutput", $devices->{energy}{today}{batteryOutput});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_today_batteryInput", $devices->{energy}{today}{batteryInput});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_today_solar", $devices->{energy}{today}{solar});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_today_outputToBindDevice", $devices->{energy}{today}{outputToBindDevice});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_today_bindDeviceInput", $devices->{energy}{today}{bindDeviceInput});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_today_home", $devices->{energy}{today}{home});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_today_outputToInverse", $devices->{energy}{today}{outputToInverse});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_today_gridInputTotal", $devices->{energy}{today}{gridInputTotal});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_today_socketOutputTotal", $devices->{energy}{today}{socketOutputTotal});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_today_dcOutputTotal", $devices->{energy}{today}{dcOutputTotal});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_today_gridDirectTotal", $devices->{energy}{today}{gridDirectTotal});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_today_acOutputTotal", $devices->{energy}{today}{acOutputTotal});
+
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_total_batteryOutput", $devices->{energy}{total}{batteryOutput});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_total_batteryInput", $devices->{energy}{total}{batteryInput});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_total_solar", $devices->{energy}{total}{solar});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_total_outputToBindDevice", $devices->{energy}{total}{outputToBindDevice});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_total_bindDeviceInput", $devices->{energy}{total}{bindDeviceInput});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_total_home", $devices->{energy}{total}{home});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_total_outputToInverse", $devices->{energy}{total}{outputToInverse});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_total_gridInputTotal", $devices->{energy}{total}{gridInputTotal});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_total_socketOutputTotal", $devices->{energy}{total}{socketOutputTotal});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_total_dcOutputTotal", $devices->{energy}{total}{dcOutputTotal});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_total_gridDirectTotal", $devices->{energy}{total}{gridDirectTotal});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_total_acOutputTotal", $devices->{energy}{total}{acOutputTotal});
+						readingsEndUpdate($hash, 1);
+					}
+					elsif($devices->{productType} == 8){
+						readingsBeginUpdate($hash); 	
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_today_batteryOutput", $devices->{energy}{today}{batteryOutput});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_today_batteryInput", $devices->{energy}{today}{batteryInput});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_today_solar", $devices->{energy}{today}{solar});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_today_home", $devices->{energy}{today}{home});
+
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_total_batteryOutput", $devices->{energy}{total}{batteryOutput});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_total_batteryInput", $devices->{energy}{total}{batteryInput});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_total_solar", $devices->{energy}{total}{solar});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_total_home", $devices->{energy}{total}{home});
+						readingsEndUpdate($hash, 1);
+					}
+					elsif($devices->{productType} == 17){
+						readingsBeginUpdate($hash); 	
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_today_batteryOutput", $devices->{energy}{today}{batteryOutput});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_today_batteryInput", $devices->{energy}{today}{batteryInput});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_today_solar", $devices->{energy}{today}{solar});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_today_home", $devices->{energy}{today}{home});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_today_gridInputTotal", $devices->{energy}{today}{gridInputTotal});
+
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_total_batteryOutput", $devices->{energy}{total}{batteryOutput});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_total_batteryInput", $devices->{energy}{total}{batteryInput});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_total_solar", $devices->{energy}{total}{solar});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_total_home", $devices->{energy}{total}{home});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_energy_total_gridInputTotal", $devices->{energy}{total}{gridInputTotal});
+						readingsEndUpdate($hash, 1);
+					}
+				}
+			}
+			readingsSingleUpdate($hash, 'state', 'Energy data successful loaded!', 1 );
+		}
+		elsif($param->{command} eq "getDetails"){
+			foreach my $devices(@{$hash->{helper}{devices}{data}}){
+				if($devices->{id} eq $param->{id}){
+					# merge der Hashes damit {total} & {today} erhalten bleiben
+					#@{$devices->{detail}}{ keys %$responseData } = values %$responseData;
+					$devices->{detail} = $responseData;
+					
+					readingsBeginUpdate($hash); 	
+						readingsBulkUpdate($hash, "Device_".$devices->{id}."_createTime", $devices->{detail}{data}{createTime});
+						readingsBulkUpdate($hash, "Device_".$devices->{id}."_updateTime", $devices->{detail}{data}{updateTime});
+					readingsEndUpdate($hash, 1);
+					
+					foreach my $pack(@{$devices->{detail}{data}{packDataList}}){
+						readingsBeginUpdate($hash); 	
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_pack_".$pack->{id}."_createTime", $pack->{createTime});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_pack_".$pack->{id}."_packType", $pack->{packType});
+							readingsBulkUpdate($hash, "Device_".$devices->{id}."_pack_".$pack->{id}."_snNumber", $pack->{sn});
+						readingsEndUpdate($hash, 1);
+					}
+				}
+			}
+			readingsSingleUpdate($hash, 'state', 'Detail data successful loaded!', 1 );
 		}
 		else{
 			Log3 $name, 5, $name.": <parseRequestAnswer> unhandled command $param->{command}";
@@ -295,6 +718,7 @@ sub Zendure_parseRequestAnswer {
 	return undef;
 }
 
+# Get ##########################################################################
 sub Zendure_Get {
 	my ($hash, $name, $opt, @args) = @_;
 
@@ -303,31 +727,86 @@ sub Zendure_Get {
 	Log3 $name, 5, $name.": <Get> called for $name : msg = $opt";
 
 	my $dump;
-	my $usage = "Unknown argument $opt, choose one of AccessToken:noArg DeviceList:noArg ConfigProposal:noArg Account:noArg";
+	my $dumpList;
 	
-	if ($opt eq "AccessToken"){
-		if(defined($hash->{helper}{auth})){
-	        if(%{$hash->{helper}{auth}}){
-	        	Zendure_convertBool($hash->{helper}{auth});
-			    local $Data::Dumper::Deepcopy = 1;
-				$dump = Dumper($hash->{helper}{auth});
-				$dump =~ s{\A\$VAR\d+\s*=\s*}{};
-	        	return "stored data:\n".$dump;
-	        }
-	    }
-		return "No data available: $opt";	
-	} 
-	elsif($opt eq "DeviceList"){
-		if(defined($hash->{helper}{devices})){
-			if(%{$hash->{helper}{devices}}){
-				Zendure_convertBool($hash->{helper}{devices});
-				local $Data::Dumper::Deepcopy = 1;
-				$dump = Dumper($hash->{helper}{devices});
-				$dump =~ s{\A\$VAR\d+\s*=\s*}{};
-				return "stored data:\n".$dump;
+	my $usage = "Unknown argument $opt, choose one of showData:AccessToken,DeviceList,Energy,Electric,Details ConfigProposal:noArg Account:noArg";
+	
+	if($opt eq "showData"){
+		if ($args[0] eq "AccessToken"){
+			if(defined($hash->{helper}{get}{auth})){
+		        if(%{$hash->{helper}{get}{auth}}){
+		        	Zendure_convertBool($hash->{helper}{get}{auth});
+				    local $Data::Dumper::Deepcopy = 1;
+					$dump = Dumper($hash->{helper}{get}{auth});
+					$dump =~ s{\A\$VAR\d+\s*=\s*}{};
+		        	return "stored data:\n".$dump;
+		        }
+		    }
+			return "No data available: $opt $args[0]";	
+		} 
+		elsif($args[0] eq "DeviceList"){
+			if(defined($hash->{helper}{get}{devices})){
+				if(%{$hash->{helper}{get}{devices}}){
+					Zendure_convertBool($hash->{helper}{get}{devices});
+					local $Data::Dumper::Deepcopy = 1;
+					$dump = Dumper($hash->{helper}{get}{devices});
+					$dump =~ s{\A\$VAR\d+\s*=\s*}{};
+					return "stored data:\n".$dump;
+				}
 			}
+			return "No data available: $opt $args[0]";
 		}
-		return "No data available: $opt";
+		elsif($args[0] eq "Electric"){
+			if(defined($hash->{helper}{devices}{data})){
+				$dumpList = "";
+				foreach my $devices(@{$hash->{helper}{devices}{data}}){
+					$dumpList .= "DeviceId: ".$devices->{id}."\n";
+					if(defined($devices->{electric})){
+						Zendure_convertBool($devices->{electric});
+						local $Data::Dumper::Deepcopy = 1;
+						$dump = Dumper($devices->{electric});
+						$dump =~ s{\A\$VAR\d+\s*=\s*}{};
+					}
+					$dumpList .= $dump."\n";
+				}
+				return "stored data:\n".$dumpList;
+			}
+			return "No data available: $opt $args[0]";
+		}
+		elsif($args[0] eq "Energy"){
+			if(defined($hash->{helper}{devices}{data})){
+				$dumpList = "";
+				foreach my $devices(@{$hash->{helper}{devices}{data}}){
+					$dumpList .= "DeviceId: ".$devices->{id}."\n";
+					if(defined($devices->{energy})){
+						Zendure_convertBool($devices->{energy});
+						local $Data::Dumper::Deepcopy = 1;
+						$dump = Dumper($devices->{energy});
+						$dump =~ s{\A\$VAR\d+\s*=\s*}{};
+					}
+					$dumpList .= $dump."\n";
+				}
+				return "stored data:\n".$dumpList;
+			}
+			return "No data available: $opt $args[0]";
+		}
+		elsif($args[0] eq "Details"){
+			if(defined($hash->{helper}{devices}{data})){
+				$dumpList = "";
+				foreach my $devices(@{$hash->{helper}{devices}{data}}){
+					$dumpList .= "DeviceId: ".$devices->{id}."\n";
+					if(defined($devices->{detail})){
+						Zendure_convertBool($devices->{detail});
+						local $Data::Dumper::Deepcopy = 1;
+						$dump = Dumper($devices->{detail});
+						$dump =~ s{\A\$VAR\d+\s*=\s*}{};
+					}
+					$dumpList .= $dump."\n";
+				}
+				return "stored data:\n".$dumpList;
+			}
+			return "No data available: $opt $args[0]";
+		}
 	}
 	elsif($opt eq "Account"){
 		my $username = $hash->{helper}{username};
@@ -413,8 +892,47 @@ sub Zendure_Get {
 	return $usage; 
 }
 
-# Convert Bool #################################################################
+# Attr #########################################################################
+sub Zendure_Attr {
+	my ($cmd,$name,$attr_name,$attr_value) = @_;
+	# $cmd can be "del" or "set"
+	# $name is device name
+	# $attr_name and $attr_value are Attribute name and value
+	my $hash = $main::defs{$name};
+	
+	$attr_value = "" if (!defined $attr_value);
+	
+	Log3 $name, 5, $name.": <Attr> Called for $attr_name : value = $attr_value";
+	
+	if($cmd eq "set") {
+        if($attr_name eq "xxx") {
+			# value testen
+			#if($attr_value !~ /^yes|no$/) {
+			#    my $err = "Invalid argument $attr_value to $attr_name. Must be yes or no.";
+			#    Log 3, "xxxxx: ".$err;
+			#    return $err;
+			#}
+		}
+		elsif($attr_name eq "updateInterval") {
+			unless ($attr_value =~ qr/^[0-9]+$/) {
+				Log3 $name, 2, $name.": Invalid Time in attr $attr_name : $attr_value";
+				return "Invalid Time $attr_value";
+			} 
+			InternalTimer(gettimeofday() + $attr_value, "Zendure_getUpdate", $hash) if($attr_value);
+		} 
 
+	}
+	elsif($cmd eq "del"){
+		#default wieder herstellen
+		if($attr_name eq "updateInterval") {
+			RemoveInternalTimer($hash, "Zendure_getUpdate"); 
+		} 
+	
+	}
+	return undef;
+}
+
+# Convert Bool #################################################################
 sub Zendure_convertBool {
 
 	local *_convert_bools = sub {
@@ -441,7 +959,6 @@ sub Zendure_convertBool {
 }
 
 # Password Crypt ###############################################################
-
 sub Zendure_encrypt {
   	my ($decoded) = @_;
   	my $key = getUniqueId();
