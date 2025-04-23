@@ -44,11 +44,11 @@ Ruft einen neuen Token ab, wie auch die Device List und baut eine Verbindung zum
 
 `set <name> disconnect`
 
-Beendet die Vervindung zum MQTT Server.
+Beendet die Verbindung zum MQTT Server.
 
 `attr <name> updateInterval`
 
-default = 0 : in Minuten : Ruft nach Interval per Polling die Statistikdaten für den aktuellen Tag ab, wie auch die Daten der gesamten Laufzeit. Die Daten werden als Readings in das entsprechende MQTT2_DEVICE gespeichert. 
+default = 0 : in Minuten : Ruft nach Interval per Polling die Statistikdaten für den aktuellen Tag ab, wie auch die Daten der gesamten Laufzeit. Die Daten werden als Readings in dam entsprechenden MQTT2_DEVICE gespeichert. 
 
 updateIntervall = 0 | updateInterval delete : stoppt das Polling
 
