@@ -48,7 +48,7 @@ Beendet die Verbindung zum MQTT Server.
 
 `attr <name> updateInterval`
 
-default = 0 : in Minuten : Ruft nach Interval per Polling die Statistikdaten für den aktuellen Tag ab, wie auch die Daten der gesamten Laufzeit. Die Daten werden als Readings in dam entsprechenden MQTT2_DEVICE gespeichert. 
+default = 0 : in Minuten : Ruft nach Interval per Polling die Statistikdaten für den aktuellen Tag ab, wie auch die Daten der gesamten Laufzeit. Die Daten werden als Readings in dem entsprechenden MQTT2_DEVICE gespeichert. 
 
 updateIntervall = 0 | updateInterval delete : stoppt das Polling
 
